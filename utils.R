@@ -1,3 +1,41 @@
+
+
+
+creaplot <- function(mod, x, y, value) {
+  if (y =="log") {
+    type <- "link"
+    ylab  <- "log death rate"
+  }  else {
+    type <- "rates"
+    ylab <-  "death" 
+  }
+  uxthat <- fitted(mod, type)
+  xlab = gsub("s", "", x, fixed =TRUE)
+  
+  
+  uxt <- mod$Dxt / mod$Ext
+  
+  valuechar <- as.character(value)
+  if(x == "years") {
+      uxt = uxt[valuechar, ]
+     uxthat <- uxthat[valuechar, ]
+} else {
+  uxt = uxt[, valuechar ]
+  uxthat <- uxthat[, valuechar]
+  
+}
+  
+ # auxf <- function(m, uxt, yl, main, ) {
+    plot(mod[[x]], uxt, xlab = xlab, ylab = ylab, main = paste0("fitted vs. observed rates at ", value))
+    lines(mod[[x]], uxthat)
+  # }
+  # base2grob::base2grob(auxf()) 
+}
+
+
+
+
+
 key_pais <- function(v, val) {
   val
   names(v)[v==val]

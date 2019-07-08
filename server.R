@@ -321,7 +321,23 @@ output$plot_life1 <- renderPlot({
   
   output$modeloutput <- renderUI({
     req(sal_mod())
+    type_rate <- "g"
     div(
+      
+      tabBox(width = 4, title = paste(input$mod_name, "Fitted"),
+            tabPanel(title = "Plot(cohort)",
+                     sliderInput("coho1", "Choose cohort:", min = min(sal_mod()$years), max = max(sal_mod()$years),
+                                                            value = max(sal_mod()$years)),
+                     renderPlot(creaplot(sal_mod(), "ages", type_rate, input$coho1))
+            ),
+            tabPanel(title = "Plot(age)",
+                     sliderInput("age11", "Choose age:", min = min(sal_mod()$ages), max = max(sal_mod()$ages),
+                                 value = max(sal_mod()$ages)),
+                     renderPlot(creaplot(sal_mod(), "years", type_rate, input$age11))
+            )
+            
+             
+      ),
       tabBox(width = 4, title = paste(input$mod_name, "Parameters"),
             tabPanel(title = "Plots",
                 renderPlot(plot(sal_mod(), parametricbx = FALSE)),

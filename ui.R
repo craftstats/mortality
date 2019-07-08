@@ -10,7 +10,6 @@
 library(shiny)
 library(shinydashboard)
 library(shinyalert)
-library(tippy)
 library(shinyhelper)
 library(shinycssloaders)
 #library(shinydashboardPlus)
@@ -26,8 +25,8 @@ ui <-dashboardPage(
      dashboardSidebar(
            sidebarMenu( id ="menu",
                menuItem("Datos", tabName = "menu_datos"),
-               with_tippy(menuItem("Gráficos descriptivos", tabName = "menu_grafi",
-                         badgeLabel = "Sin datos", badgeColor = "red"), tooltip="Necesitas meter los datos primero", placement="left"),
+               menuItem("Gráficos descriptivos", tabName = "menu_grafi",
+                         badgeLabel = "Sin datos", badgeColor = "red"), 
                menuItem("Lifetables", tabName = "menu_life"),
                menuItem("Construct models", tabName = "menu_models"),
                menuItem("Evaluate models", tabName = "menu_plotmodels"),
