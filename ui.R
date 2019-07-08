@@ -9,7 +9,6 @@
 
 library(shiny)
 library(shinydashboard)
-library(dashboardthemes)
 library(shinyalert)
 library(tippy)
 library(shinyhelper)
