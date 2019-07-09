@@ -17,7 +17,9 @@ library(shinycssloaders)
 library(shinyWidgets)
 library(plotly)
 library(DT)
-
+library(tidyr)
+library(plotly)
+library(dplyr)
 
 # Define server logic required to draw a histogram
 
@@ -125,10 +127,14 @@ server <-function(input, output, session) {
  output$plot1<- renderPlot({
     req(input$anos)
     auxi<- bases[[input$pais2]]
-    p <- plot(auxi, transform = input$transf, 
-         years = seq(input$anos[[1]], input$anos[[2]], 1),
-         ages = seq(input$edad[[1]], input$edad[[2]], 1),
-         plot.type="function")
+    ages = seq(input$edad[[1]], input$edad[[2]], 1)
+    years = seq(input$anos[[1]], input$anos[[2]], 1)
+    if (input$interac) {
+    p <- plot(auxi, transform = input$transf, ages=ages, years=years, plot.type="function")
+    } else {
+     p <- create_plot_i(auxi,  ages=ages, years=years, input$transf) 
+      
+    }
     p
   })
   

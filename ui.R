@@ -53,19 +53,17 @@ ui <-dashboardPage(
             ),
             tabItem(tabName = "menu_grafi",
                     fluidRow( 
-                          box(width = 4,
+                          box(width = 6,
                              uiOutput("ui2"),
                              uiOutput("uislider1"),
                              helper(uiOutput("uislider2"), type ="inline", title="un poco de ayuda", content = "lorem ipsum dsfdsfdasfdsf dsfsdfsdfsd"),
-                             checkboxInput("transf", "Transformación logarítmica", TRUE)
+                             checkboxInput("transf", "Transformación logarítmica", TRUE),
+                             checkboxInput("interac", "Interactivo", FALSE)
                           ),
-                          box(width = 4, collapsible = TRUE, 
+                          box(width = 6, collapsible = TRUE, 
                             plotOutput("plot1")
                           )
-                          ,
-                          box(width = 4, collapsible = TRUE,
-                              plotOutput("plot2")
-                          )
+                          
                           
                    )
                    
