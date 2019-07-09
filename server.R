@@ -15,14 +15,13 @@ library(StMoMo)
 library(shinyalert)
 library(shinycssloaders)
 library(shinyWidgets)
+library(ggplot2)
 library(plotly)
 library(DT)
-library(tidyr)
-library(plotly)
 library(dplyr)
 
 # Define server logic required to draw a histogram
-
+options(shiny.sanitize.errors = FALSE)
 paises <-c("AUS","ESP","ITA")
 names(paises) <- c("Australia", "España", "Italia")
 links <- list(Poisson = "log", Binomial = "logit")
@@ -123,22 +122,26 @@ server <-function(input, output, session) {
   auxi
  })
   
-  
- output$plot1<- renderPlot({
-    req(input$anos)
-    auxi<- bases[[input$pais2]]
-    ages = seq(input$edad[[1]], input$edad[[2]], 1)
-    years = seq(input$anos[[1]], input$anos[[2]], 1)
-    if (input$interac) {
-    p <- plot(auxi, transform = input$transf, ages=ages, years=years, plot.type="function")
-    } else {
-     p <- create_plot_i(auxi,  ages=ages, years=years, input$transf) 
-      
-    }
-    p
-  })
-  
-
+ #  
+ # observe({
+ #    req(input$anos)
+ #    auxi<- bases[[input$pais2]]
+ #    ages = seq(input$edad[[1]], input$edad[[2]], 1)
+ #    years = seq(input$anos[[1]], input$anos[[2]], 1)
+ #    if (input$interac) {
+ #    output$plot1 <- renderPlot(
+ #               plot(auxi, transform = input$transf, ages=ages, years=years, plot.type="function"))
+ #    } else {
+ #      output$plot1  <- renderPlotly(create_plot_i(auxi,  ages=ages, years=years, input$transf) )
+ #    }  
+ #    
+ #  })
+ #  
+ output$plot1  <- renderPlotly({req(input$pais2)
+                    create_plot_i(bases[[input$pais2]],  
+                                  ages=seq(input$edad[1], input$edad[2], 1), 
+                                  years=seq(input$anos[1], input$anos[2], 1), input$transf) 
+             })
   
   output$boxdoble<- renderUI({
     req(input$pais3)

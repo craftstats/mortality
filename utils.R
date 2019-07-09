@@ -1,10 +1,10 @@
 
 
-create_plot_i <- function(x, ages, years, type, series=names(x$rate)[1]){
+create_plot_i <- function(x, ages, years, type, series="female"){
   df <- as.data.frame(x$rate[[series]]) %>% 
     tibble::rownames_to_column(var = "Age") %>% 
     mutate(Age = as.numeric(gsub("+","",Age, fixed = T)))  %>% 
-    gather(-Age, key = "Year",value =  "Rate")  %>%
+    tidyr::gather(-Age, key = "Year",value =  "Rate")  %>%
     filter(Age %in% ages, Year %in% years)  %>% 
     mutate(Rate = na_if (Rate, 0))
   
