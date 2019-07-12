@@ -48,8 +48,10 @@ ui <-dashboardPage(
                         uiOutput("ui")
                       ),
                       box(width = 4,
-                          withSpinner(textOutput("summary")))
-                    )
+                          withSpinner(verbatimTextOutput("summary")))
+                    ),
+                    
+                    fluidRow(dataTableOutput("tablebases"))
             ),
             tabItem(tabName = "menu_grafi",
                     fluidRow( 
@@ -96,8 +98,13 @@ ui <-dashboardPage(
            
            ),
            tabItem(tabName = "menu_forecast",
-                   fluidRow(
-                           uiOutput("forecast")
+                   fluidRow(box(width = 6, title = "Create forecast",
+                                uiOutput("create_forecast")
+                                
+                   ),
+                   box(width = 6, title = "Creating forecast",
+                       withSpinner(verbatimTextOutput("show_forecast"))
+                   )
                    )
            )                   
            

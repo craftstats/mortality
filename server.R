@@ -8,6 +8,7 @@
 #
 
 source(file = "utils.R")
+source(file = "modulos.R")
 library(shiny)
 library(shinydashboard)
 library(demography)
@@ -26,12 +27,13 @@ paises <-c("AUS","ESP","ITA")
 names(paises) <- c("Australia", "España", "Italia")
 links <- list(Poisson = "log", Binomial = "logit")
 lll<- readRDS("idemo")
-
+llll<-StMoMoData(lll)
 
 server <-function(input, output, session) {
-  
-  bases<-list()
-  bases[["España"]] <- lll
+  HMD <- reactiveValues()
+  bases <- reactiveValues()
+  HMD[["España"]] <- lll
+  bases[["España_female"]]<-llll
   modelos <- list()
   observe_helpers(withMathJax = TRUE)
   
@@ -44,6 +46,8 @@ server <-function(input, output, session) {
             textInput("usuario", "Usuario", "rebeldatalab@gmail.com"),
             textInput("passw", "Contraseña", "1562189576"),
             selectInput("pais", "Pais", choices = paises, selected = "ESP", selectize = TRUE),
+            prettyRadioButtons(inputId = "serieXXX", label = "Choose serie:", choices = c("female", "male", "total"), 
+                               icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
             actionButton("carga","Cargar")
           ),
          "archivo" =  fileInput("file1", "Choose CSV File",
@@ -56,11 +60,54 @@ server <-function(input, output, session) {
        
   })
   
-  observe({
-    if (input$menu == "menu_life") {
-      updateSelectInput(session, inputId = "pais3", choices = names(bases), label ="Pais")
-    }
+  pais <- eventReactive(input$carga, {
+    key_pais(paises, input$pais)
   })
+  
+  flag_lectura <- eventReactive(input$carga, {
+    nombre <- paste(pais(), input$serieXXX, sep ="_")
+    cat(nombre)
+    if (!(pais() %in% names(HMD))) {
+      tryCatch({
+        cat("pepe")
+        cat(input$seriesXXX)
+        HMD[[pais()]] <-hmd.mx2(country=input$pais, username=input$usuario, password=input$passw, label= pais())
+        cat(names(HMD))
+        bases[[nombre]] <- StMoMoData(HMD[[pais()]], series = input$serieXXX)
+        return(TRUE)
+      },
+        error = function(err) {
+        shinyalert("¡Fallo de lectura!", "No pudimos conectar con la base de datos.\n Revisa tu usuario y contraseña.", type = "error")   
+        return(FALSE)
+      }) 
+    } else
+      {
+        if (!(nombre %in% names(bases))) {
+          cat(pais())
+          bases[[nombre]] <- StMoMoData(HMD[[pais()]], series = input$serieXXX)}
+        return(TRUE)
+      }  
+  })  
+  
+  output$summary  <- renderPrint({
+    req(flag_lectura())
+    isolate(nombre <- paste(pais(), input$serieXXX, sep ="_"))
+    bases[[nombre]]
+  })  
+  
+  
+  output$tablebases <- renderDT({
+    req(flag_lectura)
+    series <- 
+    mutate(Age = as.numeric(gsub("+","",Age, fixed = T)))
+    
+    
+  })
+  
+  
+  
+  
+ 
   
   output$ui2 <- renderUI({
       if (is.null(pais()))
@@ -88,39 +135,24 @@ server <-function(input, output, session) {
   
   
   
-  pais <- eventReactive(input$carga, {
-    key_pais(paises, input$pais)
-  })
+ 
   
 
-  flag_lectura <- eventReactive(input$carga, {
-    
-    if (!(pais() %in% names(bases))) {
-  
-      tryCatch({
-        
-        bases[[pais()]] <<-  hmd.mx2(country=input$pais, username=input$usuario, password=input$passw, label= pais())
-        return(TRUE)
-        },
-        error = function(err) {
-        shinyalert("¡Fallo de lectura!", "No pudimos conectar con la base de datos.\n Revisa tu usuario y contraseña.", type = "error")   
-        return(FALSE)
-        }
-      )    
-    }
-  })  
-  
+ 
  
  # output$cargadas <- renderText({
  #    paste("la longitud de ", pais(), names(bases))
  #  })
  
+  
+  
+  observe({
+    if (input$menu == "menu_life") {
+      updateSelectInput(session, inputId = "pais3", choices = names(bases), label ="Pais")
+    }
+  })
  
- output$summary  <- renderPrint({
-   req(flag_lectura())
-       auxi <- StMoMoData(bases[[pais()]])
-  auxi
- })
+ 
   
  #  
  # observe({
@@ -407,6 +439,43 @@ output$plot_life1 <- renderPlot({
     formatRound(1:7,3)          
     
   })
-   
+ 
+  
+  
+  
+  output$create_forecast <- renderUI({
+    h <- 1
+    req(sal_mod())
+    
+    div( 
+      selectInput("modelofore", "Pais", choices = input$mod_name,  selectize = FALSE),
+      prettyRadioButtons(inputId = "serie2", label = "Choose serie:", choices = c("female", "male", "total"), 
+                         icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+      
+      helper( 
+        radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"), 
+                          justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+        ,type = "markdown", content = "models", size="l") ,
+      prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links, 
+                         icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+      sliderInput("ano4", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
+      sliderInput("edad3", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
+      uiOutput("extra_param"),
+      textInput("mod_name", ""),
+      
+      
+      actionBttn(inputId = "runmodel", label = "Run model", icon = icon("gear"), style = "simple", color = "success")
+      
+      
+      
+    )
+    
+  })
+  
+  
+  
+  
+  
+    
   
 }

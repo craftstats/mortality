@@ -1,3 +1,24 @@
+f2 <- function(x, ages) mean(ages) - x
+constPlat <- function(ax, bx, kt, b0x, gc, wxt, ages){
+       nYears <- dim(wxt)[2]
+       x <- ages
+       t <- 1:nYears
+       c <- (1 - tail(ages, 1)):(nYears - ages[1])
+       xbar <- mean(x)
+       phiReg <- lm(gc ~ 1 + c + I(c ^ 2), na.action = na.omit)
+       phi <- coef(phiReg)
+       gc <- gc - phi[1] - phi[2] * c - phi[3] * c ^ 2
+       kt[2, ] <- kt[2, ] + 2 * phi[3] * t
+       kt[1, ] <- kt[1, ] + phi[2] * t + phi[3] * (t ^ 2 - 2 * xbar * t)
+       ax <- ax + phi[1] - phi[2] * x + phi[3] * x ^ 2
+       ci <- rowMeans(kt, na.rm = TRUE)
+       ax <- ax + ci[1] + ci[2] * (xbar - x)
+       kt[1, ] <- kt[1, ] - ci[1]
+       kt[2, ] <- kt[2, ] - ci[2]
+       list(ax = ax, bx = bx, kt = kt, b0x = b0x, gc = gc)
+  }
+
+
 
 
 create_plot_i <- function(x, ages, years, type, series="female"){
@@ -68,7 +89,11 @@ create_model <- function(type, data, link, years, ages, const="sum", cohortAgeFu
          RH = fit(rh(link = link, cohortAgeFun = cohortAgeFun, approxConst = approxConst), data = data, ages.fit = ages, years.fit = years),
          M6 = fit(m6(link = link), data = data, ages.fit = ages, years.fit = years),
          M7 = fit(m7(link = link), data = data, ages.fit = ages, years.fit = years),
-         M8 = fit(m8(link = link, xc = xc), data = data, ages.fit = ages, years.fit = years)
+         M8 = fit(m8(link = link, xc = xc), data = data, ages.fit = ages, years.fit = years),
+         PLAT = fit(StMoMo(link = link, staticAgeFun = TRUE, periodAgeFun = c("1", f2), 
+                        cohortAgeFun = "1", constFun = constPlat),
+                        data = data, ages.fit = ages, years.fit = years)
+         
   )
 }
 
