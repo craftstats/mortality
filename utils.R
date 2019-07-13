@@ -21,6 +21,24 @@ constPlat <- function(ax, bx, kt, b0x, gc, wxt, ages){
   }
 
 
+sheets_name <- function(file) {
+  if (!is.null(file)) {
+    tryCatch({
+      return(excel_sheets(path = file$datapath))
+    },
+    error = function(err) {
+      shinyalert("¡Fallo de lectura!", "Revisa que sea un archiovo excel válido", type = "error")   
+      return(NULL)
+    }) 
+  } else {
+    return(NULL)
+  }  
+}
+
+
+st2demo <- function(objeto) {
+  demogdata(objeto$Dxt/objeto$Ext, objeto$Dxt, objeto$ages, objeto$years, "mortality", objeto$label, objeto$series, 0)
+}
 
 
 create_plot_i <- function(x, ages, years, type, series="female"){

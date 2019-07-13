@@ -7,20 +7,7 @@
 #    http://shiny.rstudio.com/
 #
 
-source(file = "utils.R")
-source(file = "modulos.R")
-library(shiny)
-library(shinydashboard)
-library(demography)
-library(StMoMo)
-library(shinyalert)
-library(shinycssloaders)
-library(shinyWidgets)
-library(ggplot2)
-library(plotly)
-library(DT)
-library(dplyr)
-library(purrr)
+
 
 # Define server logic required to draw a histogram
 options(shiny.sanitize.errors = FALSE)
@@ -31,74 +18,133 @@ lll<- readRDS("idemo")
 llll<-StMoMoData(lll)
 
 server <-function(input, output, session) {
+  observe_helpers(withMathJax = TRUE)
+  
   
   HMD <- reactiveValues()
-  bases <- reactiveValues(memoria = list("España_female" = llll))
+  bases <- reactiveValues(memoria = list("España_female" = llll), actual = NULL)
   HMD[["España"]] <- lll
  # observe({bases$memoria[["España_female"]]<-llll})
   modelos <- list()
   cat ("dfasdfadsfadsfads")
-  observe_helpers(withMathJax = TRUE)
   
+  
+  
+  
+  
+  ## pantalla inicial --------------------------------------------------------  
   output$ui <- renderUI({
-    if (is.null(input$input_type))
-    return()
-  
-  switch(input$input_type,
+    if (is.null(input$input_type)) return()
+      switch(input$input_type,
           "hmd" = div(
             textInput("usuario", "Usuario", "rebeldatalab@gmail.com"),
             textInput("passw", "Contraseña", "1562189576"),
             selectInput("pais", "Pais", choices = paises, selected = "ESP", selectize = TRUE),
             prettyRadioButtons(inputId = "serieXXX", label = "Choose serie:", choices = c("female", "male", "total"), 
                                icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-            actionButton("carga","Cargar")
+            actionButton(inputId = "carga",label = "Cargar")
           ),
-         "archivo" =  fileInput("file1", "Choose CSV File",
+         "archivo" =  div(fileInput("file1", "Archivo con la matriz de ratios",
                                 multiple = FALSE,
-                                accept = c("text/csv",
-                                           "text/comma-separated-values,text/plain",
-                                           ".csv")
-          )
+                                accept = c(".xlsx")
+                               ),
+                          selectInput("hoja1", "Nombre de la hoja", choices = ""),
+                          fileInput("file2", "Hoja con la matriz de población",
+                                     multiple = FALSE,
+                                     accept = c(".xlsx")
+                          ),
+                          selectInput("hoja2", "Nombre de la hoja", choices = ""),
+                          textInput("newtext", label = "Pais", value = "Mis datos"),
+                          selectizeInput("newserie", label = "Tipo de serie", choices = c("female", "male", "total"), 
+                                         selected = NULL, multiple = FALSE, options= list(create = TRUE)),
+                         actionBttn(inputId = "archicarga", label = "Cargar")
+           )  
         )
-       
   })
   
-  pais <- eventReactive(input$carga, {
-    key_pais(paises, input$pais)
+
+# Lectura from archivo excel ----------------------------------------------
+
+observe({
+  updateSelectInput(session, "hoja1", choices = sheets_name(input$file1))
+  updateSelectInput(session, "hoja2", choices = sheets_name(input$file2))    
   })
-  
-  flag_lectura <- eventReactive(input$carga, {
-    nombre <- paste(pais(), input$serieXXX, sep ="_")
-    cat(nombre)
-    if (!(pais() %in% names(HMD))) {
+
+ observeEvent(input$archicarga, {
+    if (!is.null(input$file1) & !is.null(input$file2) & (trimws(input$newtext)!="") & (trimws(input$newserie)!="")) {
+      mat_ratios <- read_excel(input$file1$datapath, sheet = input$hoja1)
+      mat_pop <- read_excel(input$file2$datapath, sheet = input$hoja2)
       tryCatch({
-        cat("pepe")
-        cat(input$seriesXXX)
-        HMD[[pais()]] <-hmd.mx2(country=input$pais, username=input$usuario, password=input$passw, label= pais())
-        cat(names(HMD))
-        bases$memoria[[nombre]] <- StMoMoData(HMD[[pais()]], series = input$serieXXX)
-        return(TRUE)
+        
+        objeto <- demogdata(
+          data = mat_ratios[, -1], pop = mat_pop[, -1]*100000, 
+          ages = as.numeric(gsub("+","",unlist(mat_ratios[,1]), fixed = T)),
+          years = as.numeric(colnames(mat_ratios)[-1]),
+          label = input$newtext, name = input$newserie, 
+          type = "mortality", lambda = 0
+        )
+        e0(objeto)  # para comprobar que realmente es un objeto demography 
+        nombre <- paste(input$newtext, input$newserie, sep ="_")
+         bases$memoria[[nombre]] <- StMoMoData(objeto)
+         bases$actual  <- bases$memoria[[nombre]]
+      },
+        error = function(err) {
+        shinyalert("¡No se pudo construir un objeto demography!", "Revisa que las hojas de excel sean válidas y tengan formato correcto", type = "error")   
+        
+      }) 
+    } else {
+      shinyalert("¡No puedes cargar todavía!", "Revisa lo que te falta por introducir", type = "error")
+      
+    }
+    
+  })
+  
+ # summary <- reactive({
+ #    req(flag_excel())
+ #    bases$actual
+ #  })  
+  
+# lectura hmd -------------------------------------------------------------
+
+  observeEvent(input$carga, {
+    
+    pais <- key_pais(paises, input$pais)
+    nombre <- paste(pais, input$serieXXX, sep ="_")
+    
+    if (!(pais %in% names(HMD))) {
+      tryCatch({
+        HMD[[pais]] <-hmd.mx2(country=input$pais, username=input$usuario, password=input$passw, label= pais)
+        bases$memoria[[nombre]] <- StMoMoData(HMD[[pais]], series = input$serieXXX)
+         bases$actual <-  bases$memoria[[nombre]]
+                                        
+        
       },
         error = function(err) {
         shinyalert("¡Fallo de lectura!", "No pudimos conectar con la base de datos.\n Revisa tu usuario y contraseña.", type = "error")   
-        return(FALSE)
+        
       }) 
     } else
       {
         if (!(nombre %in% names(bases))) {
-          cat(pais())
-          bases$memoria[[nombre]] <- StMoMoData(HMD[[pais()]], series = input$serieXXX)}
-        return(TRUE)
+          bases$memoria[[nombre]] <- StMoMoData(HMD[[pais]], series = input$serieXXX)}
+           bases$actual <- bases$memoria[[nombre]]
+        
       }  
   })  
   
-  output$summary  <- renderPrint({
-    req(flag_lectura())
-    isolate(nombre <- paste(pais(), input$serieXXX, sep ="_"))
-    bases$memoria[[nombre]]
-  })  
-  
-  
+
+  # summary <- reactive({ 
+  #     req(flag_lec())
+  #     bases$actual
+  #   })
+   
+ output$summary  <- renderPrint({
+   if (is.null(bases$actual)) cat("Puedes cargar más datos")
+   else bases$actual
+ })
+
+# Tabla de modelos --------------------------------------------------------
+
   output$tablebases <- renderDT({
     datatable(create_tabla_bases(bases$memoria))
   })
@@ -108,40 +154,49 @@ server <-function(input, output, session) {
   })
   
   observeEvent(input$borrar,{
-     if (!is.null(input$tablebases_rows_selected))
+     if (!is.null(input$tablebases_rows_selected)) {
       bases$memoria <- bases$memoria[-input$tablebases_rows_selected]
-    
-  }
-               )
-  
-  
- 
-  
-  output$ui2 <- renderUI({
-      if (is.null(pais()))
-        return()
-    
-    
-      selectInput("pais2", "Pais", choices = names(bases), selectize = FALSE)
-  })
-  
-  output$uislider1 <- renderUI({
-    req(input$pais2)
-    mi <- min(bases[[input$pais2]]$year)
-    mx <- max(bases[[input$pais2]]$year)
-    
-     sliderInput("anos", "Años", min = mi, max = mx , value = c(mi,mx), step = 1)
-  })
-  
-  output$uislider2 <- renderUI({
-    req(input$pais2)
-    mi <- min(bases[[input$pais2]]$age)
-    mx <- max(bases[[input$pais2]]$age)
-    
-    sliderInput("edad", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1)
+      bases$actual <- NULL
+     }
   })
   
   
+#------------------------------------------------------------------------------
+  
+
+# Página descriptivos -----------------------------------------------------
+
+output$descri <- renderUI({
+  run3(bases, descriptivos_server)
+  deploy3(bases$memoria, descriptivos_UI)})
+  
+   
+  # 
+  # output$ui2 <- renderUI({
+  #     if (is.null(pais()))
+  #       return()
+  #   
+  #   
+  #     selectInput("pais2", "Pais", choices = names(bases), selectize = FALSE)
+  # })
+  # 
+  # output$uislider1 <- renderUI({
+  #   req(input$pais2)
+  #   mi <- min(bases[[input$pais2]]$year)
+  #   mx <- max(bases[[input$pais2]]$year)
+  #   
+  #    sliderInput("anos", "Años", min = mi, max = mx , value = c(mi,mx), step = 1)
+  # })
+  # 
+  # output$uislider2 <- renderUI({
+  #   req(input$pais2)
+  #   mi <- min(bases[[input$pais2]]$age)
+  #   mx <- max(bases[[input$pais2]]$age)
+  #   
+  #   sliderInput("edad", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1)
+  # })
+  # 
+  # 
   
  
   
@@ -177,311 +232,311 @@ server <-function(input, output, session) {
  #    
  #  })
  #  
- output$plot1  <- renderPlotly({req(input$pais2)
-                    create_plot_i(bases[[input$pais2]],  
-                                  ages=seq(input$edad[1], input$edad[2], 1), 
-                                  years=seq(input$anos[1], input$anos[2], 1), input$transf) 
-             })
-  
-  output$boxdoble<- renderUI({
-    req(input$pais3)
-    mi <- min(bases[[input$pais3]]$year)
-    mx <- max(bases[[input$pais3]]$year)
-        tabBox(
-        id = "box2",
-        tabPanel(
-          title = "Plot",
-          div(
-            dropdown(
-                sliderInput("ano2", "Años", min = mi, max = mx , value = c(mi,mx), step = 1)
-              ,
-              size = "xs",
-              icon = icon("gear", class="opt"),
-              up = TRUE
-            )
-          ),
-           plotOutput("plot_life1")
-          ,
-          div(
-            actionBttn(
-                inputId = "zoom",
-                icon = icon("search-plus", class = "opt"),
-                style = "fill",
-                color = "danger",
-                size = "xs"
-              )
-          )
-          #)
-        ),
-        tabPanel(
-          title = "Table",
-          div(DT::dataTableOutput("table"),style = "font-size: 85%"),
-          div(
-            #style = "position: absolute; left: 0.5em; bottom: 0.5em;",
-            dropdown(
-              sliderInput("ano3", "Año", min = mi, max = mx , value = mx, step = 1),
-              size = "xs",
-              icon = icon("gear", class = "opt"),
-              up = TRUE
-            )
-          )
-           
-          
-        )
-
-      
-      )  
-  })
-
-  
-  
-plooo<- eventReactive(input$ano2,{
-    years = seq(input$ano2[[1]], input$ano2[[2]], 1)
-    p<-plot(lifetable(bases[[input$pais3]], years=years))
-    p
-    })
-
-output$plot_life1 <- renderPlot({
-   plooo()
-  })
-  
-  observeEvent((input$zoom), {
-    showModal(modalDialog(
-      renderPlot({
-        years = seq(input$ano2[[1]], input$ano2[[2]], 1)
-        p<-plot(lifetable(bases[[input$pais3]], years=years))
-        p
-      }, height = 600),
-      easyClose = TRUE,
-      size = "l",
-      footer = NULL
-    ))
-  })
-  
-  output$table <- renderDT({
-    req(input$ano3)
-    auxi <-lifetable(bases[[input$pais3]], years=input$ano3)
-    ltable <- with(auxi, data.frame(mx = mx[-1], qx = qx[-1], lx = lx[-1], dx = dx[-1], Lx =  Lx[-1], Tx =  Tx[-1], ex = ex[-1]))
-    pp<-datatable(ltable, class = "display compact", extensions = c("Buttons", "Scroller"), options = list(
-                                 dom = 'Bt',
-                                 scrollY = 400,
-                                 scroller=TRUE,
-                                 buttons = list(list(extend = "collection",
-                                                     text = 'Download',
-                                                     action = DT::JS("function ( e, dt, node, config ) {
-                                    Shiny.setInputValue('test', true, {priority: 'event'});}")))))
-    formatRound(pp, 1:7,3)          
-
-  })
-  
-  
-  output$create_model <- renderUI({
-     mi<-0
-    mx <-100
-    req(pais())
-    
-    div( 
-      selectInput("pais4", "Pais", choices = names(bases),  selectize = FALSE),
-      prettyRadioButtons(inputId = "serie", label = "Choose serie:", choices = c("female", "male", "total"), 
-                                icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-      helper( 
-        radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"), 
-                          justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon")))
-            ,type = "markdown", content = "models", size="l") ,
-      prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links, 
-                             icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-      sliderInput("ano4", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
-      sliderInput("edad3", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
-      uiOutput("extra_param"),
-      textInput("mod_name", ""),
-      
-      
-      actionBttn(inputId = "runmodel", label = "Run model", icon = icon("gear"), style = "simple", color = "success")
-      
-        
-      
-    )
-   
-  })
-  
-  output$extra_param <- renderUI({
-    req(input$modelo)
-    switch(input$modelo,
-           "LC" = radioGroupButtons(inputId = "const", label = "Constraint to impose", choices = c("sum", "last", "first"), 
-                                    justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon"))),
-           "M8" = numericInput(inputId = "xc", label = "Cohort age modulating parameter", value = floor((input$ano4[1] + input$ano4[2])/2)),
-           "RH" = div(
-                    radioGroupButtons(inputId = "cohortAgeFun", label = "Cohort age modulating parameter", choices = c("1", "NP"), 
-                               justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon"))),
-                    prettyToggle(inputId = "approxConst", label_on = "Constraint of Hunt and Villegas (2015) applied", icon_on = icon("check"),
-                         status_on = "info", status_off = "warning", label_off = "Constraint of Hunt and Villegas (2015) not applied",  
-                        icon_off = icon("remove"), value = FALSE)
-                     )
-          ) 
-    
-    
-  })
-  
-  
-  observe( {
-    req(input$pais4)
-    val <- input$pais4 
-    miy <- min(bases[[val]]$year)
-    mxy <- max(bases[[val]]$year)
-    mia <- min(bases[[val]]$age)
-    mxa <- max(bases[[val]]$age)
-    
-    updateSliderInput(session, "ano4", min = miy, max = mxy , value = c(miy,mxy), step = 1)
-    updateSliderInput(session, "edad3", min = mia, max = mxa , value = c(mia,mxa), step = 1)
-    
-    updateTextInput(session, "mod_name", value = paste("Mod", input$runmodel, input$pais4, input$serie, input$modelo, input$link))
-  })
-   
- 
-  
-  sal_mod <- eventReactive((input$runmodel), {
-    
-    const <- ifelse(is.null(input$const), "sum", input$const)
-    cohortAgeFun <-ifelse(is.null(input$cohortAgeFun), "1",input$cohortAgeFun) 
-    approxConst <- ifelse(is.null(input$approxConst), TRUE, input$approxConst)
-    xc <- ifelse(is.null(input$xc), 1900, input$xc)
-    
-    
-    
-    if (input$link == "logit") {type <- "initial"}
-    else {type <- "central"}
-    
-    data <- StMoMoData(bases[[input$pais4]], series = input$serie, type = type) 
-    
-  anos <- seq(input$ano4[[1]], input$ano4[[2]], 1)
-  ages <- seq(input$edad3[[1]], input$edad3[[2]], 1)
-      auxi <- create_model(input$modelo, data, input$link, anos, ages, const, cohortAgeFun, approxConst, xc)
-        auxi
-       
-  })
-  
-  output$show_models <- renderPrint({
-    req(sal_mod())
-    sal_mod()
-  })     
-
- 
-  
-  
-  output$modeloutput <- renderUI({
-    req(sal_mod())
-    type_rate <- "g"
-    div(
-      
-      tabBox(width = 4, title = paste(input$mod_name, "Fitted"),
-            tabPanel(title = "Plot(cohort)",
-                     sliderInput("coho1", "Choose cohort:", min = min(sal_mod()$years), max = max(sal_mod()$years),
-                                                            value = max(sal_mod()$years)),
-                     renderPlot(creaplot(sal_mod(), "ages", type_rate, input$coho1))
-            ),
-            tabPanel(title = "Plot(age)",
-                     sliderInput("age11", "Choose age:", min = min(sal_mod()$ages), max = max(sal_mod()$ages),
-                                 value = max(sal_mod()$ages)),
-                     renderPlot(creaplot(sal_mod(), "years", type_rate, input$age11))
-            )
-            
-             
-      ),
-      tabBox(width = 4, title = paste(input$mod_name, "Parameters"),
-            tabPanel(title = "Plots",
-                renderPlot(plot(sal_mod(), parametricbx = FALSE)),
-                div(
-                  style = "position:absolute;right:0.5em;bottom: 0.5em;",
-                  actionBttn(inputId = "zoom2", icon = icon("search-plus", class = "opt"),
-                                   style = "fill", color = "danger", size = "xs")
-                )
-          
-            ),
-            tabPanel(title = "Age parameters",
-                        DT::dataTableOutput("table2")
-            ),
-            tabPanel(title = "Cohort parameters",
-                     DT::dataTableOutput("table3")
-            )
-        
-      ),
-      tabBox(width = 4, title = paste(input$mod_name, "residuals"),
-            tabPanel(title = "Plot", 
-                renderPlot(plot(residuals(sal_mod()), type="scatter"))
-            ),
-            tabPanel(title = "Heatmap",
-                renderPlot(plot(residuals(sal_mod()), type = "colourmap"))
-            ),
-            tabPanel(title = "Table",
-                actionBttn(inputId = "showtable")     
-            )
-            
-      )
-    )
-    
-  })
-  observeEvent(input$showtable,{
-    table <- residuals(req(sal_mod()))$residuals
-    showModal(modalDialog(
-      renderDT(datatable(table), height = 600),
-      easyClose = TRUE,
-      size = "l",
-      footer = NULL
-    ))
-    
-    
-  })
-  
-  
-  observeEvent((input$zoom2), {
-    showModal(modalDialog(
-        renderPlot(plot(sal_mod(), parametricbx = FALSE), height = 600),
-        easyClose = TRUE,
-        size = "l",
-        footer = NULL
-    ))
-  })
-  output$table2 <- renderDT({
-    req(sal_mod())
-    cb_coef_age(sal_mod()) %>% datatable() %>% 
-    formatRound(1:7,3)          
-    
-  })
- 
-  
-  
-  
-  output$create_forecast <- renderUI({
-    h <- 1
-    req(sal_mod())
-    
-    div( 
-      selectInput("modelofore", "Pais", choices = input$mod_name,  selectize = FALSE),
-      prettyRadioButtons(inputId = "serie2", label = "Choose serie:", choices = c("female", "male", "total"), 
-                         icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-      
-      helper( 
-        radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"), 
-                          justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon")))
-        ,type = "markdown", content = "models", size="l") ,
-      prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links, 
-                         icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-      sliderInput("ano4", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
-      sliderInput("edad3", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
-      uiOutput("extra_param"),
-      textInput("mod_name", ""),
-      
-      
-      actionBttn(inputId = "runmodel", label = "Run model", icon = icon("gear"), style = "simple", color = "success")
-      
-      
-      
-    )
-    
-  })
-  
-  
-  
+#  output$plot1  <- renderPlotly({req(input$pais2)
+#                     create_plot_i(bases[[input$pais2]],  
+#                                   ages=seq(input$edad[1], input$edad[2], 1), 
+#                                   years=seq(input$anos[1], input$anos[2], 1), input$transf) 
+#              })
+#   
+#   output$boxdoble<- renderUI({
+#     req(input$pais3)
+#     mi <- min(bases[[input$pais3]]$year)
+#     mx <- max(bases[[input$pais3]]$year)
+#         tabBox(
+#         id = "box2",
+#         tabPanel(
+#           title = "Plot",
+#           div(
+#             dropdown(
+#                 sliderInput("ano2", "Años", min = mi, max = mx , value = c(mi,mx), step = 1)
+#               ,
+#               size = "xs",
+#               icon = icon("gear", class="opt"),
+#               up = TRUE
+#             )
+#           ),
+#            plotOutput("plot_life1")
+#           ,
+#           div(
+#             actionBttn(
+#                 inputId = "zoom",
+#                 icon = icon("search-plus", class = "opt"),
+#                 style = "fill",
+#                 color = "danger",
+#                 size = "xs"
+#               )
+#           )
+#           #)
+#         ),
+#         tabPanel(
+#           title = "Table",
+#           div(DT::dataTableOutput("table"),style = "font-size: 85%"),
+#           div(
+#             #style = "position: absolute; left: 0.5em; bottom: 0.5em;",
+#             dropdown(
+#               sliderInput("ano3", "Año", min = mi, max = mx , value = mx, step = 1),
+#               size = "xs",
+#               icon = icon("gear", class = "opt"),
+#               up = TRUE
+#             )
+#           )
+#            
+#           
+#         )
+# 
+#       
+#       )  
+#   })
+# 
+#   
+#   
+# plooo<- eventReactive(input$ano2,{
+#     years = seq(input$ano2[[1]], input$ano2[[2]], 1)
+#     p<-plot(lifetable(bases[[input$pais3]], years=years))
+#     p
+#     })
+# 
+# output$plot_life1 <- renderPlot({
+#    plooo()
+#   })
+#   
+#   observeEvent((input$zoom), {
+#     showModal(modalDialog(
+#       renderPlot({
+#         years = seq(input$ano2[[1]], input$ano2[[2]], 1)
+#         p<-plot(lifetable(bases[[input$pais3]], years=years))
+#         p
+#       }, height = 600),
+#       easyClose = TRUE,
+#       size = "l",
+#       footer = NULL
+#     ))
+#   })
+#   
+#   output$table <- renderDT({
+#     req(input$ano3)
+#     auxi <-lifetable(bases[[input$pais3]], years=input$ano3)
+#     ltable <- with(auxi, data.frame(mx = mx[-1], qx = qx[-1], lx = lx[-1], dx = dx[-1], Lx =  Lx[-1], Tx =  Tx[-1], ex = ex[-1]))
+#     pp<-datatable(ltable, class = "display compact", extensions = c("Buttons", "Scroller"), options = list(
+#                                  dom = 'Bt',
+#                                  scrollY = 400,
+#                                  scroller=TRUE,
+#                                  buttons = list(list(extend = "collection",
+#                                                      text = 'Download',
+#                                                      action = DT::JS("function ( e, dt, node, config ) {
+#                                     Shiny.setInputValue('test', true, {priority: 'event'});}")))))
+#     formatRound(pp, 1:7,3)          
+# 
+#   })
+#   
+#   
+#   output$create_model <- renderUI({
+#      mi<-0
+#     mx <-100
+#     req(pais())
+#     
+#     div( 
+#       selectInput("pais4", "Pais", choices = names(bases),  selectize = FALSE),
+#       prettyRadioButtons(inputId = "serie", label = "Choose serie:", choices = c("female", "male", "total"), 
+#                                 icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+#       helper( 
+#         radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"), 
+#                           justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+#             ,type = "markdown", content = "models", size="l") ,
+#       prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links, 
+#                              icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+#       sliderInput("ano4", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
+#       sliderInput("edad3", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
+#       uiOutput("extra_param"),
+#       textInput("mod_name", ""),
+#       
+#       
+#       actionBttn(inputId = "runmodel", label = "Run model", icon = icon("gear"), style = "simple", color = "success")
+#       
+#         
+#       
+#     )
+#    
+#   })
+#   
+#   output$extra_param <- renderUI({
+#     req(input$modelo)
+#     switch(input$modelo,
+#            "LC" = radioGroupButtons(inputId = "const", label = "Constraint to impose", choices = c("sum", "last", "first"), 
+#                                     justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon"))),
+#            "M8" = numericInput(inputId = "xc", label = "Cohort age modulating parameter", value = floor((input$ano4[1] + input$ano4[2])/2)),
+#            "RH" = div(
+#                     radioGroupButtons(inputId = "cohortAgeFun", label = "Cohort age modulating parameter", choices = c("1", "NP"), 
+#                                justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon"))),
+#                     prettyToggle(inputId = "approxConst", label_on = "Constraint of Hunt and Villegas (2015) applied", icon_on = icon("check"),
+#                          status_on = "info", status_off = "warning", label_off = "Constraint of Hunt and Villegas (2015) not applied",  
+#                         icon_off = icon("remove"), value = FALSE)
+#                      )
+#           ) 
+#     
+#     
+#   })
+#   
+#   
+#   observe( {
+#     req(input$pais4)
+#     val <- input$pais4 
+#     miy <- min(bases[[val]]$year)
+#     mxy <- max(bases[[val]]$year)
+#     mia <- min(bases[[val]]$age)
+#     mxa <- max(bases[[val]]$age)
+#     
+#     updateSliderInput(session, "ano4", min = miy, max = mxy , value = c(miy,mxy), step = 1)
+#     updateSliderInput(session, "edad3", min = mia, max = mxa , value = c(mia,mxa), step = 1)
+#     
+#     updateTextInput(session, "mod_name", value = paste("Mod", input$runmodel, input$pais4, input$serie, input$modelo, input$link))
+#   })
+#    
+#  
+#   
+#   sal_mod <- eventReactive((input$runmodel), {
+#     
+#     const <- ifelse(is.null(input$const), "sum", input$const)
+#     cohortAgeFun <-ifelse(is.null(input$cohortAgeFun), "1",input$cohortAgeFun) 
+#     approxConst <- ifelse(is.null(input$approxConst), TRUE, input$approxConst)
+#     xc <- ifelse(is.null(input$xc), 1900, input$xc)
+#     
+#     
+#     
+#     if (input$link == "logit") {type <- "initial"}
+#     else {type <- "central"}
+#     
+#     data <- StMoMoData(bases[[input$pais4]], series = input$serie, type = type) 
+#     
+#   anos <- seq(input$ano4[[1]], input$ano4[[2]], 1)
+#   ages <- seq(input$edad3[[1]], input$edad3[[2]], 1)
+#       auxi <- create_model(input$modelo, data, input$link, anos, ages, const, cohortAgeFun, approxConst, xc)
+#         auxi
+#        
+#   })
+#   
+#   output$show_models <- renderPrint({
+#     req(sal_mod())
+#     sal_mod()
+#   })     
+# 
+#  
+#   
+#   
+#   output$modeloutput <- renderUI({
+#     req(sal_mod())
+#     type_rate <- "g"
+#     div(
+#       
+#       tabBox(width = 4, title = paste(input$mod_name, "Fitted"),
+#             tabPanel(title = "Plot(cohort)",
+#                      sliderInput("coho1", "Choose cohort:", min = min(sal_mod()$years), max = max(sal_mod()$years),
+#                                                             value = max(sal_mod()$years)),
+#                      renderPlot(creaplot(sal_mod(), "ages", type_rate, input$coho1))
+#             ),
+#             tabPanel(title = "Plot(age)",
+#                      sliderInput("age11", "Choose age:", min = min(sal_mod()$ages), max = max(sal_mod()$ages),
+#                                  value = max(sal_mod()$ages)),
+#                      renderPlot(creaplot(sal_mod(), "years", type_rate, input$age11))
+#             )
+#             
+#              
+#       ),
+#       tabBox(width = 4, title = paste(input$mod_name, "Parameters"),
+#             tabPanel(title = "Plots",
+#                 renderPlot(plot(sal_mod(), parametricbx = FALSE)),
+#                 div(
+#                   style = "position:absolute;right:0.5em;bottom: 0.5em;",
+#                   actionBttn(inputId = "zoom2", icon = icon("search-plus", class = "opt"),
+#                                    style = "fill", color = "danger", size = "xs")
+#                 )
+#           
+#             ),
+#             tabPanel(title = "Age parameters",
+#                         DT::dataTableOutput("table2")
+#             ),
+#             tabPanel(title = "Cohort parameters",
+#                      DT::dataTableOutput("table3")
+#             )
+#         
+#       ),
+#       tabBox(width = 4, title = paste(input$mod_name, "residuals"),
+#             tabPanel(title = "Plot", 
+#                 renderPlot(plot(residuals(sal_mod()), type="scatter"))
+#             ),
+#             tabPanel(title = "Heatmap",
+#                 renderPlot(plot(residuals(sal_mod()), type = "colourmap"))
+#             ),
+#             tabPanel(title = "Table",
+#                 actionBttn(inputId = "showtable")     
+#             )
+#             
+#       )
+#     )
+#     
+#   })
+#   observeEvent(input$showtable,{
+#     table <- residuals(req(sal_mod()))$residuals
+#     showModal(modalDialog(
+#       renderDT(datatable(table), height = 600),
+#       easyClose = TRUE,
+#       size = "l",
+#       footer = NULL
+#     ))
+#     
+#     
+#   })
+#   
+#   
+#   observeEvent((input$zoom2), {
+#     showModal(modalDialog(
+#         renderPlot(plot(sal_mod(), parametricbx = FALSE), height = 600),
+#         easyClose = TRUE,
+#         size = "l",
+#         footer = NULL
+#     ))
+#   })
+#   output$table2 <- renderDT({
+#     req(sal_mod())
+#     cb_coef_age(sal_mod()) %>% datatable() %>% 
+#     formatRound(1:7,3)          
+#     
+#   })
+#  
+#   
+#   
+#   
+#   output$create_forecast <- renderUI({
+#     h <- 1
+#     req(sal_mod())
+#     
+#     div( 
+#       selectInput("modelofore", "Pais", choices = input$mod_name,  selectize = FALSE),
+#       prettyRadioButtons(inputId = "serie2", label = "Choose serie:", choices = c("female", "male", "total"), 
+#                          icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+#       
+#       helper( 
+#         radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"), 
+#                           justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+#         ,type = "markdown", content = "models", size="l") ,
+#       prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links, 
+#                          icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+#       sliderInput("ano4", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
+#       sliderInput("edad3", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
+#       uiOutput("extra_param"),
+#       textInput("mod_name", ""),
+#       
+#       
+#       actionBttn(inputId = "runmodel", label = "Run model", icon = icon("gear"), style = "simple", color = "success")
+#       
+#       
+#       
+#     )
+#     
+#   })
+#   
+#   
+#   
   
   
     

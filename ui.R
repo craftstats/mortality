@@ -7,13 +7,6 @@
 #    http://shiny.rstudio.com/
 #
 
-library(shiny)
-library(shinydashboard)
-library(shinyalert)
-library(shinyhelper)
-library(shinycssloaders)
-#library(shinydashboardPlus)
-library(plotly)
 
 # Define UI for application that draws a histogram
 ui <-dashboardPage(
@@ -36,6 +29,7 @@ ui <-dashboardPage(
      dashboardBody(
              includeCSS("pru.css"),
              useShinyalert(),
+             useShinyjs(),
              tabItems(
             tabItem(tabName = "menu_datos",
                     fluidRow(
@@ -63,20 +57,22 @@ ui <-dashboardPage(
                     )
             ),
             tabItem(tabName = "menu_grafi",
-                    fluidRow( 
-                          box(width = 6,
-                             uiOutput("ui2"),
-                             uiOutput("uislider1"),
-                             helper(uiOutput("uislider2"), type ="inline", title="un poco de ayuda", content = "lorem ipsum dsfdsfdasfdsf dsfsdfsdfsd"),
-                             checkboxInput("transf", "Transformación logarítmica", TRUE),
-                             checkboxInput("interac", "Interactivo", TRUE)
-                          ),
-                          box(width = 6, collapsible = TRUE, 
-                            plotlyOutput("plot1")
-                          )
-                          
-                          
-                   )
+                    
+                    uiOutput("descri")
+                   #  fluidRow( 
+                   #        box(width = 6,
+                   #           uiOutput("ui2"),
+                   #           uiOutput("uislider1"),
+                   #           helper(uiOutput("uislider2"), type ="inline", title="un poco de ayuda", content = "lorem ipsum dsfdsfdasfdsf dsfsdfsdfsd"),
+                   #           checkboxInput("transf", "Transformación logarítmica", TRUE),
+                   #           checkboxInput("interac", "Interactivo", TRUE)
+                   #        ),
+                   #        box(width = 6, collapsible = TRUE, 
+                   #          plotlyOutput("plot1")
+                   #        )
+                   #        
+                   #        
+                   # )
                    
            ),
            tabItem(tabName = "menu_life",
