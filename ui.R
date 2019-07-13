@@ -50,8 +50,17 @@ ui <-dashboardPage(
                       box(width = 4,
                           withSpinner(verbatimTextOutput("summary")))
                     ),
+                     hr(),
+                      hr(),
                     
-                    fluidRow(dataTableOutput("tablebases"))
+                    fluidRow(box(width = 8, title = "Lista de datos cargados",  
+                                 dataTableOutput("tablebases")
+                              ),
+                             box(width = 4, title = "Modelos no incluidos",
+                                 tableOutput('lista_exluidos'),
+                                 div(actionBttn("borrar", icon =icon("trash")), align = "right")
+                             )
+                    )
             ),
             tabItem(tabName = "menu_grafi",
                     fluidRow( 

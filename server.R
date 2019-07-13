@@ -20,6 +20,7 @@ library(ggplot2)
 library(plotly)
 library(DT)
 library(dplyr)
+library(purrr)
 
 # Define server logic required to draw a histogram
 options(shiny.sanitize.errors = FALSE)
@@ -30,11 +31,13 @@ lll<- readRDS("idemo")
 llll<-StMoMoData(lll)
 
 server <-function(input, output, session) {
+  
   HMD <- reactiveValues()
-  bases <- reactiveValues()
+  bases <- reactiveValues(memoria = list("España_female" = llll))
   HMD[["España"]] <- lll
-  bases[["España_female"]]<-llll
+ # observe({bases$memoria[["España_female"]]<-llll})
   modelos <- list()
+  cat ("dfasdfadsfadsfads")
   observe_helpers(withMathJax = TRUE)
   
   output$ui <- renderUI({
@@ -73,7 +76,7 @@ server <-function(input, output, session) {
         cat(input$seriesXXX)
         HMD[[pais()]] <-hmd.mx2(country=input$pais, username=input$usuario, password=input$passw, label= pais())
         cat(names(HMD))
-        bases[[nombre]] <- StMoMoData(HMD[[pais()]], series = input$serieXXX)
+        bases$memoria[[nombre]] <- StMoMoData(HMD[[pais()]], series = input$serieXXX)
         return(TRUE)
       },
         error = function(err) {
@@ -84,7 +87,7 @@ server <-function(input, output, session) {
       {
         if (!(nombre %in% names(bases))) {
           cat(pais())
-          bases[[nombre]] <- StMoMoData(HMD[[pais()]], series = input$serieXXX)}
+          bases$memoria[[nombre]] <- StMoMoData(HMD[[pais()]], series = input$serieXXX)}
         return(TRUE)
       }  
   })  
@@ -92,19 +95,24 @@ server <-function(input, output, session) {
   output$summary  <- renderPrint({
     req(flag_lectura())
     isolate(nombre <- paste(pais(), input$serieXXX, sep ="_"))
-    bases[[nombre]]
+    bases$memoria[[nombre]]
   })  
   
   
   output$tablebases <- renderDT({
-    req(flag_lectura)
-    series <- 
-    mutate(Age = as.numeric(gsub("+","",Age, fixed = T)))
-    
-    
+    datatable(create_tabla_bases(bases$memoria))
   })
   
+  output$lista_exluidos <- renderTable({
+    create_tabla_bases(bases$memoria)$nombre[input$tablebases_rows_selected]
+  })
   
+  observeEvent(input$borrar,{
+     if (!is.null(input$tablebases_rows_selected))
+      bases$memoria <- bases$memoria[-input$tablebases_rows_selected]
+    
+  }
+               )
   
   
  

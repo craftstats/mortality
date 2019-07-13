@@ -1,3 +1,5 @@
+
+
 f2 <- function(x, ages) mean(ages) - x
 constPlat <- function(ax, bx, kt, b0x, gc, wxt, ages){
        nYears <- dim(wxt)[2]
@@ -78,6 +80,17 @@ creaplot <- function(mod, x, y, value) {
 key_pais <- function(v, val) {
   val
   names(v)[v==val]
+}
+
+
+create_tabla_bases <- function(bas) {
+  df <- data_frame(
+            nombre = names(bas),
+            pais =  map_chr(bas, "label"),
+            series = map_chr(bas, "series"),
+            edades = map_chr(bas, ~paste0(min(.$ages), " - ", max(.$ages))),
+            cohortes = map_chr(bas, ~paste0(min(.$years), " - ", max(.$years))),
+  )
 }
 
 
