@@ -31,18 +31,14 @@ ui <-dashboardPage(
              useShinyalert(),
              useShinyjs(),
              tabItems(
-            tabItem(tabName = "menu_datos",
+               tabItem(tabName = "menu_datos",
                     fluidRow(
                       box(width = 4,
                         radioButtons("input_type", "Lectura de datos",
                                      c("Human Mortality Database"="hmd", "Archivo"="archivo")
                         )
                       ),
-                      box(width=4,
-                        uiOutput("ui")
-                      ),
-                      box(width = 4,
-                          withSpinner(verbatimTextOutput("summary")))
+                      uiOutput("inicial")
                     ),
                      hr(),
                       hr(),
@@ -55,36 +51,13 @@ ui <-dashboardPage(
                                  div(actionBttn("borrar", icon =icon("trash")), align = "right")
                              )
                     )
-            ),
-            tabItem(tabName = "menu_grafi",
-                    
-                    uiOutput("descri")
-                   #  fluidRow( 
-                   #        box(width = 6,
-                   #           uiOutput("ui2"),
-                   #           uiOutput("uislider1"),
-                   #           helper(uiOutput("uislider2"), type ="inline", title="un poco de ayuda", content = "lorem ipsum dsfdsfdasfdsf dsfsdfsdfsd"),
-                   #           checkboxInput("transf", "Transformación logarítmica", TRUE),
-                   #           checkboxInput("interac", "Interactivo", TRUE)
-                   #        ),
-                   #        box(width = 6, collapsible = TRUE, 
-                   #          plotlyOutput("plot1")
-                   #        )
-                   #        
-                   #        
-                   # )
+              ),
+              tabItem(tabName = "menu_grafi",
+                   uiOutput("descri")
+              ),
+              tabItem(tabName = "menu_life",
+                   uiOutput("lifetables")
                    
-           ),
-           tabItem(tabName = "menu_life",
-                   fluidRow(
-                     selectInput("pais3", "Pais", choices = "", selected="", selectize = FALSE)
-                   ),
-                   div(
-                     fluidRow(
-                           uiOutput("boxdoble")
-                       
-                     )  
-                   )
             ),
            tabItem(tabName = "menu_models",
                    fluidRow(box(width = 6, title = "Create Model",

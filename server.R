@@ -22,7 +22,7 @@ server <-function(input, output, session) {
   
   
   HMD <- reactiveValues()
-  bases <- reactiveValues(memoria = list("España_female" = llll), actual = NULL)
+  bases <- reactiveValues(memoria = list("España_female" = llll), actual = NULL, selected = NULL)
   HMD[["España"]] <- lll
  # observe({bases$memoria[["España_female"]]<-llll})
   modelos <- list()
@@ -33,18 +33,26 @@ server <-function(input, output, session) {
   
   
   ## pantalla inicial --------------------------------------------------------  
-  output$ui <- renderUI({
+  output$inicial <- renderUI({
     if (is.null(input$input_type)) return()
       switch(input$input_type,
           "hmd" = div(
+            box (width=4,
             textInput("usuario", "Usuario", "rebeldatalab@gmail.com"),
             textInput("passw", "Contraseña", "1562189576"),
             selectInput("pais", "Pais", choices = paises, selected = "ESP", selectize = TRUE),
             prettyRadioButtons(inputId = "serieXXX", label = "Choose serie:", choices = c("female", "male", "total"), 
                                icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
             actionButton(inputId = "carga",label = "Cargar")
+            ),
+            box(width = 4,
+                withSpinner(verbatimTextOutput("summary_hmd"))
+              )
           ),
-         "archivo" =  div(fileInput("file1", "Archivo con la matriz de ratios",
+            
+         "archivo" =  div(
+                      box(width=4,  
+                      fileInput("file1", "Archivo con la matriz de ratios",
                                 multiple = FALSE,
                                 accept = c(".xlsx")
                                ),
@@ -54,11 +62,15 @@ server <-function(input, output, session) {
                                      accept = c(".xlsx")
                           ),
                           selectInput("hoja2", "Nombre de la hoja", choices = ""),
-                          textInput("newtext", label = "Pais", value = "Mis datos"),
+                          textInput("newtext", label = "Pais", value = "Misdatos"),
                           selectizeInput("newserie", label = "Tipo de serie", choices = c("female", "male", "total"), 
                                          selected = NULL, multiple = FALSE, options= list(create = TRUE)),
                          actionBttn(inputId = "archicarga", label = "Cargar")
-           )  
+                       ),
+                      box(width=4,
+                          withSpinner(verbatimTextOutput("summary_exc"))
+                          )
+                  )
         )
   })
   
@@ -66,11 +78,15 @@ server <-function(input, output, session) {
 # Lectura from archivo excel ----------------------------------------------
 
 observe({
+  req(input$file1)
   updateSelectInput(session, "hoja1", choices = sheets_name(input$file1))
+})
+observe({
+req(input$file2)  
   updateSelectInput(session, "hoja2", choices = sheets_name(input$file2))    
   })
 
- observeEvent(input$archicarga, {
+ flag_exc <- eventReactive(input$archicarga, {
     if (!is.null(input$file1) & !is.null(input$file2) & (trimws(input$newtext)!="") & (trimws(input$newserie)!="")) {
       mat_ratios <- read_excel(input$file1$datapath, sheet = input$hoja1)
       mat_pop <- read_excel(input$file2$datapath, sheet = input$hoja2)
@@ -80,33 +96,34 @@ observe({
           data = mat_ratios[, -1], pop = mat_pop[, -1]*100000, 
           ages = as.numeric(gsub("+","",unlist(mat_ratios[,1]), fixed = T)),
           years = as.numeric(colnames(mat_ratios)[-1]),
-          label = input$newtext, name = input$newserie, 
+          label = trimws(input$newtext), name = trimws(input$newserie), 
           type = "mortality", lambda = 0
         )
         e0(objeto)  # para comprobar que realmente es un objeto demography 
         nombre <- paste(input$newtext, input$newserie, sep ="_")
          bases$memoria[[nombre]] <- StMoMoData(objeto)
          bases$actual  <- bases$memoria[[nombre]]
+         return(TRUE)
       },
         error = function(err) {
         shinyalert("¡No se pudo construir un objeto demography!", "Revisa que las hojas de excel sean válidas y tengan formato correcto", type = "error")   
-        
+        return(FALSE)
       }) 
     } else {
       shinyalert("¡No puedes cargar todavía!", "Revisa lo que te falta por introducir", type = "error")
-      
+      return(FALSE)
     }
     
   })
   
- # summary <- reactive({
- #    req(flag_excel())
- #    bases$actual
- #  })  
+ output$summary_exc <- renderPrint({
+    req(flag_exc())
+    bases$actual
+  })
   
 # lectura hmd -------------------------------------------------------------
 
-  observeEvent(input$carga, {
+  flag_hmd <- eventReactive(input$carga, {
     
     pais <- key_pais(paises, input$pais)
     nombre <- paste(pais, input$serieXXX, sep ="_")
@@ -116,31 +133,28 @@ observe({
         HMD[[pais]] <-hmd.mx2(country=input$pais, username=input$usuario, password=input$passw, label= pais)
         bases$memoria[[nombre]] <- StMoMoData(HMD[[pais]], series = input$serieXXX)
          bases$actual <-  bases$memoria[[nombre]]
-                                        
+        return(TRUE)                                
         
       },
         error = function(err) {
         shinyalert("¡Fallo de lectura!", "No pudimos conectar con la base de datos.\n Revisa tu usuario y contraseña.", type = "error")   
-        
+        return(FALSE)
       }) 
     } else
       {
         if (!(nombre %in% names(bases))) {
           bases$memoria[[nombre]] <- StMoMoData(HMD[[pais]], series = input$serieXXX)}
            bases$actual <- bases$memoria[[nombre]]
+           return(TRUE)
         
       }  
   })  
   
-
-  # summary <- reactive({ 
-  #     req(flag_lec())
-  #     bases$actual
-  #   })
-   
- output$summary  <- renderPrint({
+ output$summary_hmd  <- renderPrint({
+   req(flag_hmd())
    if (is.null(bases$actual)) cat("Puedes cargar más datos")
-   else bases$actual
+   else 
+   bases$actual
  })
 
 # Tabla de modelos --------------------------------------------------------
@@ -160,7 +174,11 @@ observe({
      }
   })
   
-  
+  observe({
+    req(input$tablebases_rows_selected)
+    bases$selected <- bases$memoria[-input$tablebases_rows_selected]
+    
+  })
 #------------------------------------------------------------------------------
   
 
@@ -168,106 +186,54 @@ observe({
 
 output$descri <- renderUI({
   run3(bases, descriptivos_server)
-  deploy3(bases$memoria, descriptivos_UI)})
+  deploy3(bases$selected, descriptivos_UI)
   
-   
-  # 
-  # output$ui2 <- renderUI({
-  #     if (is.null(pais()))
-  #       return()
-  #   
-  #   
-  #     selectInput("pais2", "Pais", choices = names(bases), selectize = FALSE)
-  # })
-  # 
-  # output$uislider1 <- renderUI({
-  #   req(input$pais2)
-  #   mi <- min(bases[[input$pais2]]$year)
-  #   mx <- max(bases[[input$pais2]]$year)
-  #   
-  #    sliderInput("anos", "Años", min = mi, max = mx , value = c(mi,mx), step = 1)
-  # })
-  # 
-  # output$uislider2 <- renderUI({
-  #   req(input$pais2)
-  #   mi <- min(bases[[input$pais2]]$age)
-  #   mx <- max(bases[[input$pais2]]$age)
-  #   
-  #   sliderInput("edad", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1)
-  # })
-  # 
-  # 
+  })
   
- 
+  
+  output$lifetables <- renderUI({
+    run3(bases, lifetables_server)
+    deploy3(bases$selected, lifetables_UI)
+    
+  })
   
 
- 
- 
- # output$cargadas <- renderText({
- #    paste("la longitud de ", pais(), names(bases))
+    output$create_model <- renderUI({
+       mi<-0
+      mx <-100
+      req(bases$memoria)
+
+      div(
+        selectInput("pais4", "Pais", choices = names(bases),  selectize = FALSE),
+        prettyRadioButtons(inputId = "serie", label = "Choose serie:", choices = c("female", "male", "total"),
+                                  icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+        helper(
+          radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"),
+                            justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+              ,type = "markdown", content = "models", size="l") ,
+        prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links,
+                               icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+        sliderInput("ano4", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
+        sliderInput("edad3", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
+        uiOutput("extra_param"),
+        textInput("mod_name", ""),
+
+
+        actionBttn(inputId = "runmodel", label = "Run model", icon = icon("gear"), style = "simple", color = "success")
+
+
+
+      )
+
+    })
+  
+  
+ #observe({
+ #    if (input$menu == "menu_life") {
+ #      updateSelectInput(session, inputId = "pais3", choices = names(bases), label ="Pais")
+ #    }
  #  })
  
-  
-  
-  observe({
-    if (input$menu == "menu_life") {
-      updateSelectInput(session, inputId = "pais3", choices = names(bases), label ="Pais")
-    }
-  })
- 
- 
-  
- #  
- # observe({
- #    req(input$anos)
- #    auxi<- bases[[input$pais2]]
- #    ages = seq(input$edad[[1]], input$edad[[2]], 1)
- #    years = seq(input$anos[[1]], input$anos[[2]], 1)
- #    if (input$interac) {
- #    output$plot1 <- renderPlot(
- #               plot(auxi, transform = input$transf, ages=ages, years=years, plot.type="function"))
- #    } else {
- #      output$plot1  <- renderPlotly(create_plot_i(auxi,  ages=ages, years=years, input$transf) )
- #    }  
- #    
- #  })
- #  
-#  output$plot1  <- renderPlotly({req(input$pais2)
-#                     create_plot_i(bases[[input$pais2]],  
-#                                   ages=seq(input$edad[1], input$edad[2], 1), 
-#                                   years=seq(input$anos[1], input$anos[2], 1), input$transf) 
-#              })
-#   
-#   output$boxdoble<- renderUI({
-#     req(input$pais3)
-#     mi <- min(bases[[input$pais3]]$year)
-#     mx <- max(bases[[input$pais3]]$year)
-#         tabBox(
-#         id = "box2",
-#         tabPanel(
-#           title = "Plot",
-#           div(
-#             dropdown(
-#                 sliderInput("ano2", "Años", min = mi, max = mx , value = c(mi,mx), step = 1)
-#               ,
-#               size = "xs",
-#               icon = icon("gear", class="opt"),
-#               up = TRUE
-#             )
-#           ),
-#            plotOutput("plot_life1")
-#           ,
-#           div(
-#             actionBttn(
-#                 inputId = "zoom",
-#                 icon = icon("search-plus", class = "opt"),
-#                 style = "fill",
-#                 color = "danger",
-#                 size = "xs"
-#               )
-#           )
-#           #)
-#         ),
 #         tabPanel(
 #           title = "Table",
 #           div(DT::dataTableOutput("table"),style = "font-size: 85%"),
@@ -330,34 +296,7 @@ output$descri <- renderUI({
 #   })
 #   
 #   
-#   output$create_model <- renderUI({
-#      mi<-0
-#     mx <-100
-#     req(pais())
-#     
-#     div( 
-#       selectInput("pais4", "Pais", choices = names(bases),  selectize = FALSE),
-#       prettyRadioButtons(inputId = "serie", label = "Choose serie:", choices = c("female", "male", "total"), 
-#                                 icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-#       helper( 
-#         radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"), 
-#                           justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon")))
-#             ,type = "markdown", content = "models", size="l") ,
-#       prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links, 
-#                              icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-#       sliderInput("ano4", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
-#       sliderInput("edad3", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
-#       uiOutput("extra_param"),
-#       textInput("mod_name", ""),
-#       
-#       
-#       actionBttn(inputId = "runmodel", label = "Run model", icon = icon("gear"), style = "simple", color = "success")
-#       
-#         
-#       
-#     )
-#    
-#   })
+
 #   
 #   output$extra_param <- renderUI({
 #     req(input$modelo)

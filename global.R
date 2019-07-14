@@ -1,4 +1,5 @@
 source(file = "utils.R")
+source(file = "plots.R")
 source(file = "modulos.R")
 library(shiny)
 library(shinydashboard)
