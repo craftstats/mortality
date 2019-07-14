@@ -118,6 +118,7 @@ req(input$file2)
   
  output$summary_exc <- renderPrint({
     req(flag_exc())
+   bases$selected <- bases$memoria
     bases$actual
   })
   
@@ -152,6 +153,7 @@ req(input$file2)
   
  output$summary_hmd  <- renderPrint({
    req(flag_hmd())
+   bases$selected <- bases$memoria
    if (is.null(bases$actual)) cat("Puedes cargar más datos")
    else 
    bases$actual
@@ -170,6 +172,7 @@ req(input$file2)
   observeEvent(input$borrar,{
      if (!is.null(input$tablebases_rows_selected)) {
       bases$memoria <- bases$memoria[-input$tablebases_rows_selected]
+      bases$selected <- bases$memoria
       bases$actual <- NULL
      }
   })
