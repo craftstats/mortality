@@ -111,6 +111,23 @@ create_tabla_bases <- function(bas) {
   )
 }
 
+create_tabla_modelos <- function(bas2) {
+ 
+  df <- data_frame(
+      Nombre =  map_chr(bas2, "Nombre"),
+     Datos = map_chr(bas2, "Datos"),
+     Modelo = map_chr(bas2, "Modelo"),
+     Error = map_chr(bas2, "Link"),
+     Years = map_chr(bas2, "Anos"),
+     Ages = map_chr(bas2, "Edades"),
+     Cohorts = map_chr(bas2, "coho"),
+     Formula = map_chr(bas2, "formu"),
+     Constrains = map_chr(bas2, "const"),
+     Parameters  = map_dbl(bas2, "nparam"),
+     AIC = map_dbl(bas2, "aic"),
+     BIC = map_dbl(bas2, "bic")
+  )
+}
 
 create_model <- function(type, data, link, years, ages, clip , const,
                          cohortAgeFun, approxConst, LCfirst, xc) {
@@ -118,13 +135,19 @@ create_model <- function(type, data, link, years, ages, clip , const,
   
   cat("years")
   if (link == "logit") {data <- central2initial(data)}
-  
+  if (LCfirst) {
+    type <- "RHesp"
+    LCfit <- fit(lc(link = link, const = const), data = data, ages.fit = ages, years.fit = years, wxt = wxt)
+  }
   wxt <- genWeightMat(ages, years, clip)
   switch(type,
          LC = fit(lc(link = link, const = const), data = data, ages.fit = ages, years.fit = years, wxt = wxt), 
          CBD = fit(cbd(link = link), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
          APC = fit(apc(link = link), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
          RH = fit(rh(link = link, cohortAgeFun = cohortAgeFun, approxConst = approxConst), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
+         RHesp = fit(rh(link = link, cohortAgeFun = cohortAgeFun, approxConst = approxConst), 
+                           data = data, ages.fit = ages, years.fit = years, wxt = wxt,
+                            start.ax = LCfit$ax, start.bx = LCfit$bx, start.kt = LCfit$kt),
          M6 = fit(m6(link = link), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
          M7 = fit(m7(link = link), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
          M8 = fit(m8(link = link, xc = xc), data = data, ages.fit = ages, years.fit = years, wxt = wxt),

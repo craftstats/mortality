@@ -20,3 +20,7 @@ p <-ggplot(df, aes(x = Age, y = Rate, col = Year, group = Year)) + geom_line() +
 p <- ggplotly(p, tooltip = c("x","colour", "y"))
  p
 }
+
+
+salida1 <- function(input, output, session, name , bas , typeplot) {
+  

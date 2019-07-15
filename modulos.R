@@ -16,85 +16,6 @@ run3 <- function(bas, fserver) {
 }
 # El modulo UI general para todas las funciones creadoras
 
-plotUI <- function(id){
-  ns <- NS(id)
-  uiOutput(ns("plot"))
-}
-
-
-# distintos tipos de funciones para crear las salidas gráficas --------------------
-salida1 <- function(input, output, session, name , bas , typeplot) {
-  ns <- session$ns
-  lista <- bas$selected
-  mia <- min(lista[[name]]$year)
-  mxa <- max(lista[[name]]$year)
-  mie <- min(lista[[name]]$age)
-  mxe <- max(lista[[name]]$age)
-  datos <- st2demo(lista[[name]])
-  pp<- reactive({
-           plot(datos, ages=seq(input$edad[1], input$edad[2], 1), 
-              years=seq(input$anos[1], input$anos[2], 1),
-              plot.type = typeplot)
-  })
-  
-  output$plot <- renderUI({
-    div(
-      dropdownButton( 
-            sliderInput(ns("anos"), "Cohorte", min = mia, max = mxa , value = c(mia,mxa), step = 1),
-           sliderInput(ns("edad"), "Edad", min = mie, max = mxe , value = c(mie,mxe), step = 1), 
-           icon = icon("gear", class = "opt"),
-           size="sm",
-           tooltip = tooltipOptions(title = "Opciones"),
-           status = "info"
-       ),
-     
-      renderPlot({pp()})
-    )
-  })
-  
-  qq<- reactive({
-    plot(datos, ages=seq(input$edad[1], input$edad[2], 1), 
-              years=seq(input$anos[1], input$anos[2], 1),
-              plot.type = typeplot)
-  })
-  return(qq)
-}  
-
-
-
-
-salida2 <- function(input, output, session, name , bas , typeplot) {
-  ns <- session$ns
-  lista <- bas$selected
-  mia <- min(lista[[name]]$year)
-  mxa <- max(lista[[name]]$year)
-  mie <- min(lista[[name]]$age)
-  mxe <- max(lista[[name]]$age)
-  datos <- st2demo(lista[[name]])
-  
-  pp<- reactive({
-  years <- seq(input$anos[1], input$anos[2], 1)
-  ages <- seq(input$edad[1], input$edad[2], 1)
-      plot_life(datos, ages, years, typeplot)
-  })
-  
-  output$plot <- renderUI({
-    div(
-      dropdownButton( 
-        sliderInput(ns("anos"), "Cohorte", min = mia, max = mxa , value = c(mia,mxa), step = 1),
-        sliderInput(ns("edad"), "Edad", min = mie, max = mxe , value = c(mie,mxe), step = 1), 
-        icon = icon("gear", class = "opt"),
-        size="sm",
-        tooltip = tooltipOptions(title = "Opciones"),
-        status = "info"
-      ),
-      
-      renderPlot({pp()})
-    )
-  })
-
-    return(pp)
-}  
 
 
 # Modulo descriptivos ( 3 boxes) ------------------------------------------
@@ -137,6 +58,30 @@ lifetables_server <- function(input, output, session, name, bas) {
 }
 
 
+# Modulo gráficos de modelos ----------------------------------------------
+
+modelos_UI <- function(id, title) {
+  ns <- NS(id)
+  fluidRow(
+    h2(title),
+    tabBox(width = 4, title = "Residuales",
+              tabPanel(title = "Plot",
+                    plot_con_opciones_UI(ns("residuals"))
+              ),
+              tabPanel(title = "Heatmap",
+                   plot_con_opciones_UI(ns("heatmap"))
+              )
+          )   
+     )
+ }
+
+
+modelos_server <- function(input, output, session, name, bas) {
+  ns <- session$ns
+  callModule(plot_con_opciones, "residuals", salida3, name, bas, typeplot = "signplot") 
+  callModule(plot_con_opciones, "heatmap", salida3,  name, bas, typeplot = "colourmap")
+}  
+
 # modulo para crear gráfico con opciones y botones ------------------------
 
 plot_con_opciones_UI <- function(id) {
@@ -178,8 +123,103 @@ plot_con_opciones <- function(input, output, session, tiposalida, name, bas, ...
 }
 
 
+plotUI <- function(id){
+  ns <- NS(id)
+  uiOutput(ns("plot"))
+}
+
+
+# distintos tipos de funciones para crear las salidas gráficas --------------------
+salida1 <- function(input, output, session, name , bas , typeplot) {
+  ns <- session$ns
+  lista <- bas$selected
+  mia <- min(lista[[name]]$year)
+  mxa <- max(lista[[name]]$year)
+  mie <- min(lista[[name]]$age)
+  mxe <- max(lista[[name]]$age)
+  datos <- st2demo(lista[[name]])
+  pp<- reactive({
+    plot(datos, ages=seq(input$edad[1], input$edad[2], 1), 
+         years=seq(input$anos[1], input$anos[2], 1),
+         plot.type = typeplot)
+  })
+  
+  output$plot <- renderUI({
+    div(
+      dropdownButton( 
+        sliderInput(ns("anos"), "Cohorte", min = mia, max = mxa , value = c(mia,mxa), step = 1),
+        sliderInput(ns("edad"), "Edad", min = mie, max = mxe , value = c(mie,mxe), step = 1), 
+        icon = icon("gear", class = "opt"),
+        size="sm",
+        tooltip = tooltipOptions(title = "Opciones"),
+        status = "info"
+      ),
+      
+      renderPlot({pp()})
+    )
+  })
+  
+  qq<- reactive({
+    plot(datos, ages=seq(input$edad[1], input$edad[2], 1), 
+         years=seq(input$anos[1], input$anos[2], 1),
+         plot.type = typeplot)
+  })
+  return(qq)
+}  
+
+
+
+
+salida2 <- function(input, output, session, name , bas , typeplot) {
+  ns <- session$ns
+  lista <- bas$selected
+  mia <- min(lista[[name]]$year)
+  mxa <- max(lista[[name]]$year)
+  mie <- min(lista[[name]]$age)
+  mxe <- max(lista[[name]]$age)
+  datos <- st2demo(lista[[name]])
+  
+  pp<- reactive({
+    years <- seq(input$anos[1], input$anos[2], 1)
+    ages <- seq(input$edad[1], input$edad[2], 1)
+    plot_life(datos, ages, years, typeplot)
+  })
+  
+  output$plot <- renderUI({
+    div(
+      dropdownButton( 
+        sliderInput(ns("anos"), "Cohorte", min = mia, max = mxa , value = c(mia,mxa), step = 1),
+        sliderInput(ns("edad"), "Edad", min = mie, max = mxe , value = c(mie,mxe), step = 1), 
+        icon = icon("gear", class = "opt"),
+        size="sm",
+        tooltip = tooltipOptions(title = "Opciones"),
+        status = "info"
+      ),
+      
+      renderPlot({pp()})
+    )
+  })
+  
+  return(pp)
+}  
 
   
+salida3 <- function(input, output, session, name , bas , typeplot) {
+  ns <- session$ns
+  lista <- bas$selected
+  pp<- reactive({
+    plot(residuals(lista[[name]]), type = typeplot, reslim = c(-3.5, 3.5))
+  })
+  
+    output$plot <- renderUI({
+    div(renderPlot({pp()}))
+  })
+  
+  qq<- reactive({
+    plot(residuals(lista[[name]]), type = typeplot, reslim = c(-3.5, 3.5))
+  })
+  return(qq)
+}  
   
   
  

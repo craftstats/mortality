@@ -46,7 +46,7 @@ ui <-dashboardPage(
                     fluidRow(box(width = 8, title = "Lista de datos cargados",  
                                  dataTableOutput("tablebases")
                               ),
-                             box(width = 4, title = "Modelos no incluidos",
+                             box(width = 4, title = "Datos que no se utilizaran",
                                  tableOutput('lista_exluidos'),
                                  div(actionBttn("borrar", icon =icon("trash")), align = "right")
                              )
@@ -67,11 +67,22 @@ ui <-dashboardPage(
                            box(width = 6, title = "Creating Model",
                                withSpinner(verbatimTextOutput("show_models"))
                       )
+                   ),
+                   hr(),
+                   hr(),
+                   
+                   fluidRow(box(width = 10, title = "Lista de modelos cargados",  
+                                dataTableOutput("tablemodelos")
+                   ),
+                   box(width = 2, title = "Modelos que no se utilizaran",
+                       tableOutput('modelos_exluidos'),
+                       div(actionBttn("borrar_mod", icon =icon("trash")), align = "right")
+                   )
                    )
            ),
            tabItem(tabName = "menu_plotmodels",
                       fluidRow(
-                             uiOutput("modeloutput")
+                             uiOutput("modelooutput")
                            )   
            
            ),

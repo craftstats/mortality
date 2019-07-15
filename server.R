@@ -16,6 +16,7 @@ names(paises) <- c("Australia", "España", "Italia")
 links <- list(Poisson = "log", Binomial = "logit")
 lll<- readRDS("idemo")
 llll<-StMoMoData(lll)
+jjj <- readRDS("modelopru")
 
 server <-function(input, output, session) {
   observe_helpers(withMathJax = TRUE)
@@ -25,8 +26,9 @@ server <-function(input, output, session) {
   bases <- reactiveValues(memoria = list("España_female" = llll), actual = NULL, selected = NULL)
   HMD[["España"]] <- lll
  # observe({bases$memoria[["España_female"]]<-llll})
-  modelos <- reactiveValues(memoria = NULL, selected = NULL, actual = NULL)
-  cat ("dfasdfadsfadsfads")
+  modelos <- reactiveValues(memoria = list("LCprueba" = jjj), selected = NULL, actual = NULL)
+  model2 <- reactiveValues(descri = list())
+  
   
   
   
@@ -160,27 +162,27 @@ req(input$file2)
 
 # Tabla de datos --------------------------------------------------------
 
-  output$tablebases <- renderDT({
-    datatable(create_tabla_bases(bases$memoria))
-  })
-  
-  output$lista_exluidos <- renderTable({
-    create_tabla_bases(bases$memoria)$nombre[input$tablebases_rows_selected]
-  })
-  
-  observeEvent(input$borrar,{
-     if (!is.null(input$tablebases_rows_selected)) {
-      bases$memoria <- bases$memoria[-input$tablebases_rows_selected]
-      bases$selected <- bases$memoria
-      bases$actual <- NULL
-     }
-  })
-  
-  observe({
-    req(input$tablebases_rows_selected)
-    bases$selected <- bases$memoria[-input$tablebases_rows_selected]
-  })
-  
+ output$tablebases <- renderDT({
+   datatable(create_tabla_bases(bases$memoria))
+ })
+ 
+ output$lista_exluidos <- renderTable({
+   create_tabla_bases(bases$memoria)$nombre[input$tablebases_rows_selected]
+ })
+ 
+ observeEvent(input$borrar,{
+   if (!is.null(input$tablebases_rows_selected)) {
+     bases$memoria <- bases$memoria[-input$tablebases_rows_selected]
+     bases$selected <- bases$memoria
+     bases$actual <- NULL
+   }
+ })
+ 
+ observe({
+   req(input$tablebases_rows_selected)
+   bases$selected <- bases$memoria[-input$tablebases_rows_selected]
+ })
+ 
   
 #------------------------------------------------------------------------------
   
@@ -195,6 +197,9 @@ output$descri <- renderUI({
   deploy3(bases$selected, descriptivos_UI)
   
   })
+
+# Página lifetables -------------------------------------------------------
+
   
   
   output$lifetables <- renderUI({
@@ -206,8 +211,8 @@ output$descri <- renderUI({
   })
   
   
-  
-  
+
+# Definir modelo ----------------------------------------------------------
 
     output$create_model <- renderUI({
        mi<-0
@@ -268,29 +273,44 @@ output$descri <- renderUI({
 
       })
     
-    
+
+# Construir y mostrar modelo ----------------------------------------------
+
       flag_mod <- eventReactive(input$runmodel, {
           nombre <- trimws(input$namemodelo)
-          const <- ifelse(is.null(input$const), "sum", input$const)
-           cohortAgeFun <-ifelse(is.null(input$cohortAgeFun), "NP",input$cohortAgeFun)
-           approxConst <- ifelse(is.null(input$approxConst), TRUE, input$approxConst)
-           LCfirst <- ifelse(is.null(input$LCfirst), TRUE, input$LCfirst)
-           xc <- ifelse(is.null(input$xc), 1900, input$xc)
+          const <- ifelse(!(input$modelo == "LC"), "", input$const)
+           cohortAgeFun <-ifelse(!(input$modelo == "RH"), "",input$cohortAgeFun)
+           approxConst <- ifelse(!(input$modelo == "RH"), "", input$approxConst)
+           LCfirst <- ifelse(!(input$modelo == "RH"), FALSE, input$LCfirst)
+           xc <- ifelse(!(input$modelo == "M8"), "", input$xc)
         
         anos <- seq(input$anosmodelo[1], input$anosmodelo[2], 1)
         ages <- seq(input$edadmodelo[1], input$edadmodelo[2], 1)
-        # tryCatch({ 
-        cat("anos")
+        #tryCatch({ 
+        
           modelos$memoria[[nombre]] <- create_model(input$modelo, bases$memoria[[input$basemodelo]], 
                                                   input$link,  anos, ages, input$clipmodelo, const, 
                                                 cohortAgeFun, approxConst, LCfirst , xc)
           modelos$actual <- modelos$memoria[[nombre]]
+          model2$descri[[nombre]] <- list(Nombre = nombre,
+                                           Datos = input$basemodelo,
+                                           Modelo = input$modelo,
+                                           Link = key_pais(links, input$link),
+                                           Anos = paste0(input$anosmodelo[1],"-", input$anosmodelo[2]),
+                                           Edades = paste0(input$edadmodelo[1], "-", input$edadmodelo[2]),
+                                           coho =  paste0(min(modelos$actual$cohorts),"-", max(modelos$actual$cohorts)),
+                                           formu =  modelos$actual$model$textFormula, 
+                                          const= paste0(const, cohortAgeFun, approxConst, xc),
+                                          nparam = modelos$actual$npar,
+                                          aic = AIC(modelos$actual),
+                                          bic = BIC(modelos$actual)
+                                         ) 
           return(TRUE)    
-        # },
-        # error = function(err) {
-        #   shinyalert("¡Fallo de ejecución!", "No pudimos calcular el modelo.", type = "error")   
-        #   return(FALSE)
-        # }) 
+         # },
+         # error = function(err) {
+         #   shinyalert("¡Fallo de ejecución!", "No pudimos calcular el modelo. Prueba cambiando los parámetros", type = "error")   
+         #  return(FALSE)
+         # }) 
     })
 
         output$show_models <- renderPrint({
@@ -299,7 +319,50 @@ output$descri <- renderUI({
           modelos$actual
         })
     
- 
+
+# Tabla modelos -----------------------------------------------------------
+
+        output$tablemodelos <- renderDT({
+          if (!is.null(modelos$memoria))
+          datatable(create_tabla_modelos(model2$descri)) %>% 
+          formatRound(11:12,1) 
+        })
+        
+        output$modelos_exluidos <- renderTable({
+          if (!is.null(modelos$memoria))
+          create_tabla_modelos(model2$descri)$Nombre[input$tablemodelos_rows_selected]
+        })
+
+        observeEvent(input$borrar_mod,{
+          if (!is.null(input$tablemodelos_rows_selected)) {
+            modelos$memoria <- modelos$memoria[-input$tablemodelos_rows_selected]
+            model2$descri <- model2$descri[-input$tablemodelos_rows_selected]
+            modelos$selected <- modelos$memoria
+            modelos$actual <- NULL
+          }
+        })
+        
+        observe({
+          req(input$tablemodelos_rows_selected)
+          modelos$selected <- modelos$memoria[-input$tablemodelos_rows_selected]
+        })
+        
+       
+
+# Página gráficos modelos -------------------------------------------------
+
+        
+        
+
+        output$modelooutput <- renderUI({
+          if (is.null(input$tablemodelos_rows_selected)) {modelos$selected <- modelos$memoria}
+          else {modelos$selected <- modelos$memoria[-input$tablemodelos_rows_selected]}
+          run3(modelos, modelos_server)
+          deploy3(modelos$selected, modelos_UI)
+
+        })
+
+
  
 #         tabPanel(
 #           title = "Table",
