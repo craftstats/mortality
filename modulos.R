@@ -10,8 +10,8 @@ deploy3 <- function(lista, fUI) {
 }
 
 run3 <- function(bas, fserver) {
-  if (length(bas$memoria) >0) {
-    map(names(bas$memoria), ~ callModule(fserver, .x, .x, bas))
+  if (length(bas$selected) >0) {
+    map(names(bas$selected), ~ callModule(fserver, .x, .x, bas))
     }
 }
 # El modulo UI general para todas las funciones creadoras
@@ -25,7 +25,7 @@ plotUI <- function(id){
 # distintos tipos de funciones para crear las salidas gráficas --------------------
 salida1 <- function(input, output, session, name , bas , typeplot) {
   ns <- session$ns
-  lista <- bas$memoria
+  lista <- bas$selected
   mia <- min(lista[[name]]$year)
   mxa <- max(lista[[name]]$year)
   mie <- min(lista[[name]]$age)
@@ -65,7 +65,7 @@ salida1 <- function(input, output, session, name , bas , typeplot) {
 
 salida2 <- function(input, output, session, name , bas , typeplot) {
   ns <- session$ns
-  lista <- bas$memoria
+  lista <- bas$selected
   mia <- min(lista[[name]]$year)
   mxa <- max(lista[[name]]$year)
   mie <- min(lista[[name]]$age)

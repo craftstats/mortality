@@ -112,18 +112,25 @@ create_tabla_bases <- function(bas) {
 }
 
 
-create_model <- function(type, data, link, years, ages, const="sum", cohortAgeFun="1", approxConst=FALSE, xc = 1960) {
+create_model <- function(type, data, link, years, ages, clip , const,
+                         cohortAgeFun, approxConst, LCfirst, xc) {
+  
+  
+  cat("years")
+  if (link == "logit") {data <- central2initial(data)}
+  
+  wxt <- genWeightMat(ages, years, clip)
   switch(type,
-         LC = fit(lc(link = link, const = const), data = data, ages.fit = ages, years.fit = years), 
-         CBD = fit(cbd(link = link), data = data, ages.fit = ages, years.fit = years),
-         APC = fit(apc(link = link), data = data, ages.fit = ages, years.fit = years),
-         RH = fit(rh(link = link, cohortAgeFun = cohortAgeFun, approxConst = approxConst), data = data, ages.fit = ages, years.fit = years),
-         M6 = fit(m6(link = link), data = data, ages.fit = ages, years.fit = years),
-         M7 = fit(m7(link = link), data = data, ages.fit = ages, years.fit = years),
-         M8 = fit(m8(link = link, xc = xc), data = data, ages.fit = ages, years.fit = years),
+         LC = fit(lc(link = link, const = const), data = data, ages.fit = ages, years.fit = years, wxt = wxt), 
+         CBD = fit(cbd(link = link), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
+         APC = fit(apc(link = link), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
+         RH = fit(rh(link = link, cohortAgeFun = cohortAgeFun, approxConst = approxConst), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
+         M6 = fit(m6(link = link), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
+         M7 = fit(m7(link = link), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
+         M8 = fit(m8(link = link, xc = xc), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
          PLAT = fit(StMoMo(link = link, staticAgeFun = TRUE, periodAgeFun = c("1", f2), 
                         cohortAgeFun = "1", constFun = constPlat),
-                        data = data, ages.fit = ages, years.fit = years)
+                        data = data, ages.fit = ages, years.fit = years, wxt= wxt)
          
   )
 }

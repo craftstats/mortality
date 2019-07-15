@@ -25,7 +25,7 @@ server <-function(input, output, session) {
   bases <- reactiveValues(memoria = list("España_female" = llll), actual = NULL, selected = NULL)
   HMD[["España"]] <- lll
  # observe({bases$memoria[["España_female"]]<-llll})
-  modelos <- list()
+  modelos <- reactiveValues(memoria = NULL, selected = NULL, actual = NULL)
   cat ("dfasdfadsfadsfads")
   
   
@@ -118,7 +118,7 @@ req(input$file2)
   
  output$summary_exc <- renderPrint({
     req(flag_exc())
-   bases$selected <- bases$memoria
+   
     bases$actual
   })
   
@@ -153,13 +153,12 @@ req(input$file2)
   
  output$summary_hmd  <- renderPrint({
    req(flag_hmd())
-   bases$selected <- bases$memoria
    if (is.null(bases$actual)) cat("Puedes cargar más datos")
    else 
    bases$actual
  })
 
-# Tabla de modelos --------------------------------------------------------
+# Tabla de datos --------------------------------------------------------
 
   output$tablebases <- renderDT({
     datatable(create_tabla_bases(bases$memoria))
@@ -180,14 +179,18 @@ req(input$file2)
   observe({
     req(input$tablebases_rows_selected)
     bases$selected <- bases$memoria[-input$tablebases_rows_selected]
-    
   })
+  
+  
 #------------------------------------------------------------------------------
   
 
 # Página descriptivos -----------------------------------------------------
 
 output$descri <- renderUI({
+  if (is.null(input$tablebases_rows_selected)) {bases$selected <- bases$memoria}
+  else {bases$selected <- bases$memoria[-input$tablebases_rows_selected]
+  }
   run3(bases, descriptivos_server)
   deploy3(bases$selected, descriptivos_UI)
   
@@ -195,10 +198,15 @@ output$descri <- renderUI({
   
   
   output$lifetables <- renderUI({
+    if (is.null(input$tablebases_rows_selected)) {bases$selected <- bases$memoria}
+    else {bases$selected <- bases$memoria[-input$tablebases_rows_selected]}
     run3(bases, lifetables_server)
     deploy3(bases$selected, lifetables_UI)
     
   })
+  
+  
+  
   
 
     output$create_model <- renderUI({
@@ -207,35 +215,91 @@ output$descri <- renderUI({
       req(bases$memoria)
 
       div(
-        selectInput("pais4", "Pais", choices = names(bases),  selectize = FALSE),
-        prettyRadioButtons(inputId = "serie", label = "Choose serie:", choices = c("female", "male", "total"),
-                                  icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+        selectInput("basemodelo", "Datos", choices = names(bases$memoria),  selectize = FALSE),
         helper(
           radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"),
                             justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon")))
               ,type = "markdown", content = "models", size="l") ,
         prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links,
                                icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-        sliderInput("ano4", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
-        sliderInput("edad3", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
+        sliderInput("anosmodelo", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
+        sliderInput("edadmodelo", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
+        numericInput("clipmodelo", label = "Nº de cohortes en los extremos con peso 0", min = 0, value = 0, step = 1),
         uiOutput("extra_param"),
-        textInput("mod_name", ""),
-
-
+        textInput("namemodelo",label= "Nombre del modelo"),
         actionBttn(inputId = "runmodel", label = "Run model", icon = icon("gear"), style = "simple", color = "success")
-
-
-
       )
-
     })
   
+      observe( {
+        req(input$basemodelo)
+        val <- input$basemodelo
+        miy <- min(bases$memoria[[val]]$year)
+        mxy <- max(bases$memoria[[val]]$year)
+        mia <- min(bases$memoria[[val]]$age)
+        mxa <- max(bases$memoria[[val]]$age)
+        updatePrettyRadioButtons(session, "link", selected = 
+                                 ifelse(input$modelo %in% c("CBD", "PLAT", "M6", "M7", "M8"), "logit", "log"))
+        updateSliderInput(session, "anosmodelo", min = miy, max = mxy , value = c(miy,mxy), step = 1)
+        updateSliderInput(session, "edadmodelo", min = mia, max = mxa , value = c(mia,mxa), step = 1)
+
+        updateTextInput(session, "namemodelo", value = paste0("Mod", input$runmodel, input$modelo))
+      })
+    
   
- #observe({
- #    if (input$menu == "menu_life") {
- #      updateSelectInput(session, inputId = "pais3", choices = names(bases), label ="Pais")
- #    }
- #  })
+      output$extra_param <- renderUI({
+        req(input$modelo)
+        switch(input$modelo,
+               "LC" = radioGroupButtons(inputId = "const", label = "Constraint to impose", choices = c("sum", "last", "first"),
+                                        justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon"))),
+               "M8" = numericInput(inputId = "xc", label = "Cohort age modulating parameter", value = floor((input$anosmodelo[1] + input$anosmodelo[2])/2)),
+               "RH" = div(
+                        radioGroupButtons(inputId = "cohortAgeFun", label = "Cohort age modulating parameter", choices = c("NP", "1"),
+                                   justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon"))),
+                        prettyToggle(inputId = "approxConst", label_on = "Constraint of Hunt and Villegas (2015) applied", icon_on = icon("check"),
+                             status_on = "info", status_off = "warning", label_off = "Constraint of Hunt and Villegas (2015) not applied",
+                            icon_off = icon("remove"), value = FALSE),
+                        prettyToggle(inputId = "LCfirst", label_on = "Utilizar LC para los valores iniciales", icon_on = icon("check"),
+                                     status_on = "info", status_off = "warning", label_off = "Sin utilizar LC paraa los valores iniciales",
+                                     icon_off = icon("remove"), value = FALSE)
+                         )
+              )
+
+
+      })
+    
+    
+      flag_mod <- eventReactive(input$runmodel, {
+          nombre <- trimws(input$namemodelo)
+          const <- ifelse(is.null(input$const), "sum", input$const)
+           cohortAgeFun <-ifelse(is.null(input$cohortAgeFun), "NP",input$cohortAgeFun)
+           approxConst <- ifelse(is.null(input$approxConst), TRUE, input$approxConst)
+           LCfirst <- ifelse(is.null(input$LCfirst), TRUE, input$LCfirst)
+           xc <- ifelse(is.null(input$xc), 1900, input$xc)
+        
+        anos <- seq(input$anosmodelo[1], input$anosmodelo[2], 1)
+        ages <- seq(input$edadmodelo[1], input$edadmodelo[2], 1)
+        # tryCatch({ 
+        cat("anos")
+          modelos$memoria[[nombre]] <- create_model(input$modelo, bases$memoria[[input$basemodelo]], 
+                                                  input$link,  anos, ages, input$clipmodelo, const, 
+                                                cohortAgeFun, approxConst, LCfirst , xc)
+          modelos$actual <- modelos$memoria[[nombre]]
+          return(TRUE)    
+        # },
+        # error = function(err) {
+        #   shinyalert("¡Fallo de ejecución!", "No pudimos calcular el modelo.", type = "error")   
+        #   return(FALSE)
+        # }) 
+    })
+
+        output$show_models <- renderPrint({
+          req(flag_mod())
+          #nombre <- trimws(input$namemodelo)
+          modelos$actual
+        })
+    
+ 
  
 #         tabPanel(
 #           title = "Table",
@@ -301,66 +365,14 @@ output$descri <- renderUI({
 #   
 
 #   
-#   output$extra_param <- renderUI({
-#     req(input$modelo)
-#     switch(input$modelo,
-#            "LC" = radioGroupButtons(inputId = "const", label = "Constraint to impose", choices = c("sum", "last", "first"), 
-#                                     justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon"))),
-#            "M8" = numericInput(inputId = "xc", label = "Cohort age modulating parameter", value = floor((input$ano4[1] + input$ano4[2])/2)),
-#            "RH" = div(
-#                     radioGroupButtons(inputId = "cohortAgeFun", label = "Cohort age modulating parameter", choices = c("1", "NP"), 
-#                                justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon"))),
-#                     prettyToggle(inputId = "approxConst", label_on = "Constraint of Hunt and Villegas (2015) applied", icon_on = icon("check"),
-#                          status_on = "info", status_off = "warning", label_off = "Constraint of Hunt and Villegas (2015) not applied",  
-#                         icon_off = icon("remove"), value = FALSE)
-#                      )
-#           ) 
-#     
-#     
-#   })
+
 #   
 #   
-#   observe( {
-#     req(input$pais4)
-#     val <- input$pais4 
-#     miy <- min(bases[[val]]$year)
-#     mxy <- max(bases[[val]]$year)
-#     mia <- min(bases[[val]]$age)
-#     mxa <- max(bases[[val]]$age)
-#     
-#     updateSliderInput(session, "ano4", min = miy, max = mxy , value = c(miy,mxy), step = 1)
-#     updateSliderInput(session, "edad3", min = mia, max = mxa , value = c(mia,mxa), step = 1)
-#     
-#     updateTextInput(session, "mod_name", value = paste("Mod", input$runmodel, input$pais4, input$serie, input$modelo, input$link))
-#   })
+
 #    
 #  
 #   
-#   sal_mod <- eventReactive((input$runmodel), {
-#     
-#     const <- ifelse(is.null(input$const), "sum", input$const)
-#     cohortAgeFun <-ifelse(is.null(input$cohortAgeFun), "1",input$cohortAgeFun) 
-#     approxConst <- ifelse(is.null(input$approxConst), TRUE, input$approxConst)
-#     xc <- ifelse(is.null(input$xc), 1900, input$xc)
-#     
-#     
-#     
-#     if (input$link == "logit") {type <- "initial"}
-#     else {type <- "central"}
-#     
-#     data <- StMoMoData(bases[[input$pais4]], series = input$serie, type = type) 
-#     
-#   anos <- seq(input$ano4[[1]], input$ano4[[2]], 1)
-#   ages <- seq(input$edad3[[1]], input$edad3[[2]], 1)
-#       auxi <- create_model(input$modelo, data, input$link, anos, ages, const, cohortAgeFun, approxConst, xc)
-#         auxi
-#        
-#   })
-#   
-#   output$show_models <- renderPrint({
-#     req(sal_mod())
-#     sal_mod()
-#   })     
+
 # 
 #  
 #   
