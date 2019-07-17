@@ -48,7 +48,9 @@ server <-function(input, output, session) {
             actionButton(inputId = "carga",label = "Cargar")
             ),
             box(width = 4,
-                withSpinner(verbatimTextOutput("summary_hmd"))
+                #withSpinner(
+                  verbatimTextOutput("summary_hmd")
+                 # )
               )
           ),
             
@@ -70,7 +72,9 @@ server <-function(input, output, session) {
                          actionBttn(inputId = "archicarga", label = "Cargar")
                        ),
                       box(width=4,
-                          withSpinner(verbatimTextOutput("summary_exc"))
+                          #withSpinner(
+                            verbatimTextOutput("summary_exc")
+                            #)
                           )
                   )
         )
@@ -119,9 +123,7 @@ req(input$file2)
   })
   
  output$summary_exc <- renderPrint({
-    req(flag_exc())
-   
-    bases$actual
+    if (req(flag_exc())) isolate(bases$actual)
   })
   
 # lectura hmd -------------------------------------------------------------
@@ -286,11 +288,18 @@ output$descri <- renderUI({
         
         anos <- seq(input$anosmodelo[1], input$anosmodelo[2], 1)
         ages <- seq(input$edadmodelo[1], input$edadmodelo[2], 1)
-        #tryCatch({ 
+        tryCatch({ 
         
-          modelos$memoria[[nombre]] <- create_model(input$modelo, bases$memoria[[input$basemodelo]], 
+          auxi  <- suppressWarnings(create_model(input$modelo, bases$memoria[[input$basemodelo]], 
                                                   input$link,  anos, ages, input$clipmodelo, const, 
-                                                cohortAgeFun, approxConst, LCfirst , xc)
+                                                cohortAgeFun, approxConst, LCfirst , xc))
+          
+          if (auxi$fail) {shinyalert("¡Fallo de ejecución!", "No pudimos calcular el modelo. Prueba cambiando los parámetros", type = "error")
+            return(FALSE)
+            
+          }else{
+          
+            modelos$memoria[[nombre]] <- auxi
           modelos$actual <- modelos$memoria[[nombre]]
           model2$descri[[nombre]] <- list(Nombre = nombre,
                                            Datos = input$basemodelo,
@@ -305,12 +314,13 @@ output$descri <- renderUI({
                                           aic = AIC(modelos$actual),
                                           bic = BIC(modelos$actual)
                                          ) 
-          return(TRUE)    
-         # },
-         # error = function(err) {
-         #   shinyalert("¡Fallo de ejecución!", "No pudimos calcular el modelo. Prueba cambiando los parámetros", type = "error")   
-         #  return(FALSE)
-         # }) 
+          return(TRUE)
+          }
+         },
+         error = function(err) {
+           shinyalert("¡Fallo de ejecución!", "No pudimos calcular el modelo. Prueba cambiando los parámetros", type = "error")
+          return(FALSE)
+         })
     })
 
         output$show_models <- renderPrint({

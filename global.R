@@ -1,6 +1,8 @@
 source(file = "utils.R")
 source(file = "plots.R")
 source(file = "modulos.R")
+source(file = "modulos_grafis.R")
+source(file = "modulos_tabla.R")
 library(shiny)
 library(shinydashboard)
 library(demography)

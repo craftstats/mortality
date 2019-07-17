@@ -133,13 +133,13 @@ create_model <- function(type, data, link, years, ages, clip , const,
                          cohortAgeFun, approxConst, LCfirst, xc) {
   
   
-  cat("years")
+  wxt <- genWeightMat(ages, years, clip)
   if (link == "logit") {data <- central2initial(data)}
   if (LCfirst) {
     type <- "RHesp"
-    LCfit <- fit(lc(link = link, const = const), data = data, ages.fit = ages, years.fit = years, wxt = wxt)
+    LCfit <- fit(lc(link = link, const = "sum"), data = data, ages.fit = ages, years.fit = years, wxt = wxt)
   }
-  wxt <- genWeightMat(ages, years, clip)
+  
   switch(type,
          LC = fit(lc(link = link, const = const), data = data, ages.fit = ages, years.fit = years, wxt = wxt), 
          CBD = fit(cbd(link = link), data = data, ages.fit = ages, years.fit = years, wxt = wxt),
@@ -158,20 +158,37 @@ create_model <- function(type, data, link, years, ages, clip , const,
   )
 }
 
-cb_coef_age <- function(model) {
+coef_age <- function(model) {
   auxi <- data.frame(ages = model$ages)
   if (!is.null(model$ax)) auxi$ax <- model$ax
-  if (!is.null(model$ax)) {
+  if (!is.null(model$bx)) {
     aux2 <- as.matrix(model$bx)
     colnames(aux2) <- paste0("bx", 1:dim(aux2)[2])
     auxi <- cbind(auxi, aux2)
     row.names(auxi)<- c()
-    auxi
-  }
+    }
   if (!is.null(model$b0x)) auxi$b0x <- model$b0x
   auxi
 }
 
+coef_year <- function(model) {
+  auxi <- data.frame(years = model$years)
+  if (!is.null(model$kt)) {
+    aux2 <- t(as.matrix(model$kt))
+    colnames(aux2) <- paste0("kt", 1:dim(aux2)[2])
+    auxi <- cbind(auxi, aux2)
+    row.names(auxi)<- c()
+  }
+  auxi
+}
+
+coef_coho <- function(model) {
+  auxi <- data.frame(years = model$cohorts)
+  if (!is.null(model$gc)) {
+    auxi$gc <- model$gc
+  }
+  auxi
+}
 
 hmd.mx2 <- function(country, username, password, label=country)
 {

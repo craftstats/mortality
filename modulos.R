@@ -24,17 +24,34 @@ descriptivos_UI <- function(id, title) {
   ns <- NS(id)
   fluidRow(
        h2(title),
-       box(width = 6, title = "Rates respecto a edad", collapsible = TRUE,
+       box(width = 4, title = "Rates respecto a edad", collapsible = TRUE,
            plot_con_opciones_UI(ns("age"))),
-       box(width = 6, title = "Rates respecto a cohorte", collapsible = TRUE, 
-           plot_con_opciones_UI(ns("coho")))
+       box(width = 4, title = "Rates respecto a year", collapsible = TRUE, 
+           plot_con_opciones_UI(ns("year"))),
+       tabBox(width=4, title = "Datos",
+              tabPanel(title = "No tablas"
+                       ),
+              tabPanel(title = "Rates",
+                       tabla_opciones_UI(ns("rates"))
+                       ),
+              tabPanel(title = "Deaths",
+                       tabla_opciones_UI(ns("deaths"))
+                       ),
+              tabPanel(title = "Population",
+                       tabla_opciones_UI(ns("pop"))
+              )
+           )
        )
 }
 
 descriptivos_server <- function(input, output, session, name, bas) {
   ns <- session$ns
   callModule(plot_con_opciones, "age", salida1, name, bas, typeplot = "functions") 
-  callModule(plot_con_opciones, "coho", salida1,  name, bas, typeplot = "time")
+  callModule(plot_con_opciones, "year", salida1,  name, bas, typeplot = "time")
+  callModule(tabla_opciones_server, "rates", tabladata,  name, bas, "Rates",type = "rate")
+  callModule(tabla_opciones_server, "deaths", tabladata,  name, bas, "Deaths", type = "death")
+  callModule(tabla_opciones_server, "pop", tabladata,  name, bas, "Population", type = "pop")
+  
 }
 
 
@@ -44,17 +61,31 @@ lifetables_UI <- function(id, title) {
   ns <- NS(id)
   fluidRow(
     h2(title),
-    box(width = 6, title = "Esperanza respecto a edad", collapsible = TRUE,
-        plot_con_opciones_UI(ns("agelt"))),
-    box(width = 6, title = "Esperanza respecto a cohorte", collapsible = TRUE, 
-        plot_con_opciones_UI(ns("coholt")))
+    tabBox(width = 6, title = "Esperanza respecto a edad", 
+              tabPanel(title = "Plot",
+                plot_con_opciones_UI(ns("agelt"))
+              ),
+              tabPanel(title = "Tabla", 
+                       tabla_opciones_UI(ns("tagelt"))
+              )
+    ),
+    tabBox(width = 6, title = "Esperanza respecto a year", 
+           tabPanel(title = "Plot",
+                    plot_con_opciones_UI(ns("yearlt"))
+           ),
+           tabPanel(title = "Tabla", 
+                    tabla_opciones_UI(ns("tyearlt"))
+           )
+    )
   )
 }
 
 lifetables_server <- function(input, output, session, name, bas) {
   ns <- session$ns
   callModule(plot_con_opciones, "agelt", salida2, name, bas, typeplot = "ages") 
-  callModule(plot_con_opciones, "coholt", salida2,  name, bas, typeplot = "cohos")
+  callModule(plot_con_opciones, "yearlt", salida2,  name, bas, typeplot = "year")
+  callModule(tabla_opciones_server, "tagelt", tablalt,  name, bas, "Esperanzaedad", type = "Age")
+  callModule(tabla_opciones_server, "tyearlt", tablalt,  name, bas, "Esperanzayear", type = "Year")
 }
 
 
@@ -64,13 +95,34 @@ modelos_UI <- function(id, title) {
   ns <- NS(id)
   fluidRow(
     h2(title),
+    tabBox(width = 4, title = "Parameters",
+          tabPanel(title = "Plot", 
+            plot_con_opciones_UI(ns("parameters"))
+          ),
+          tabPanel(title = "Age",
+                   tabla_opciones_UI(ns("age"))
+          ),
+          tabPanel(title = "Year",
+                   tabla_opciones_UI(ns("year"))
+          ),
+          tabPanel(title = "Cohort",
+                   tabla_opciones_UI(ns("cohort"))
+          )
+          
+            
+           
+           
+    ),
     tabBox(width = 4, title = "Residuales",
-              tabPanel(title = "Plot",
+              tabPanel(title = "Scatterplot",
                     plot_con_opciones_UI(ns("residuals"))
               ),
               tabPanel(title = "Heatmap",
                    plot_con_opciones_UI(ns("heatmap"))
-              )
+              ),
+              tabPanel(title = "Signplot",
+                    plot_con_opciones_UI(ns("signplot"))
+              )      
           )   
      )
  }
@@ -78,152 +130,15 @@ modelos_UI <- function(id, title) {
 
 modelos_server <- function(input, output, session, name, bas) {
   ns <- session$ns
-  callModule(plot_con_opciones, "residuals", salida3, name, bas, typeplot = "signplot") 
+  callModule(plot_con_opciones, "parameters", salida4, name , bas )
+  callModule(tabla_opciones_server, "age", tablapar, name, bas, nombre = "ageparameters", type = "age")
+  callModule(tabla_opciones_server, "year", tablapar, name, bas, nombre = "yearparameters", type = "year")
+  callModule(tabla_opciones_server, "cohort", tablapar, name, bas, nombre = "cohortparameters", type = "cohort")
+  callModule(plot_con_opciones, "residuals", salida3, name, bas, typeplot = "scatter") 
   callModule(plot_con_opciones, "heatmap", salida3,  name, bas, typeplot = "colourmap")
-}  
-
-# modulo para crear gráfico con opciones y botones ------------------------
-
-plot_con_opciones_UI <- function(id) {
-  ns <-NS(id)
-  div(
-    plotUI(ns("salida")),
-    fluidRow(
-           column ( width=4, 
-                      downloadBttn(outputId = ns("down"), label = "Download", size = "xs")),
-           column ( width=4, offset = 4,
-                     actionBttn(inputId = ns("zoom"), icon = icon("search-plus", class = "opt"),
-                     style = "fill", color = "danger", size = "s"))
-    )
-  )
-}
-
-plot_con_opciones <- function(input, output, session, tiposalida, name, bas, ...) {
-  ns <- session$ns
-  plo <- callModule(tiposalida,"salida", name, bas, ...)
- 
- 
-  onclick("zoom", {
-    showModal(
-      modalDialog(
-          renderPlot({plo()}, height = 600),
-          easyClose = TRUE, size = "l", footer = NULL
-      ))
-    }
-  )
-  
-  output$down <- downloadHandler(
-    filename = function() { paste("name", '.png', sep='') },
-    content = function(file) {
-      png(file)
-      print(plo())
-      dev.off()
-    }
-  )
-}
-
-
-plotUI <- function(id){
-  ns <- NS(id)
-  uiOutput(ns("plot"))
-}
-
-
-# distintos tipos de funciones para crear las salidas gráficas --------------------
-salida1 <- function(input, output, session, name , bas , typeplot) {
-  ns <- session$ns
-  lista <- bas$selected
-  mia <- min(lista[[name]]$year)
-  mxa <- max(lista[[name]]$year)
-  mie <- min(lista[[name]]$age)
-  mxe <- max(lista[[name]]$age)
-  datos <- st2demo(lista[[name]])
-  pp<- reactive({
-    plot(datos, ages=seq(input$edad[1], input$edad[2], 1), 
-         years=seq(input$anos[1], input$anos[2], 1),
-         plot.type = typeplot)
-  })
-  
-  output$plot <- renderUI({
-    div(
-      dropdownButton( 
-        sliderInput(ns("anos"), "Cohorte", min = mia, max = mxa , value = c(mia,mxa), step = 1),
-        sliderInput(ns("edad"), "Edad", min = mie, max = mxe , value = c(mie,mxe), step = 1), 
-        icon = icon("gear", class = "opt"),
-        size="sm",
-        tooltip = tooltipOptions(title = "Opciones"),
-        status = "info"
-      ),
-      
-      renderPlot({pp()})
-    )
-  })
-  
-  qq<- reactive({
-    plot(datos, ages=seq(input$edad[1], input$edad[2], 1), 
-         years=seq(input$anos[1], input$anos[2], 1),
-         plot.type = typeplot)
-  })
-  return(qq)
+  callModule(plot_con_opciones, "signplot", salida3, name, bas, typeplot = "signplot")
 }  
 
 
-
-
-salida2 <- function(input, output, session, name , bas , typeplot) {
-  ns <- session$ns
-  lista <- bas$selected
-  mia <- min(lista[[name]]$year)
-  mxa <- max(lista[[name]]$year)
-  mie <- min(lista[[name]]$age)
-  mxe <- max(lista[[name]]$age)
-  datos <- st2demo(lista[[name]])
-  
-  pp<- reactive({
-    years <- seq(input$anos[1], input$anos[2], 1)
-    ages <- seq(input$edad[1], input$edad[2], 1)
-    plot_life(datos, ages, years, typeplot)
-  })
-  
-  output$plot <- renderUI({
-    div(
-      dropdownButton( 
-        sliderInput(ns("anos"), "Cohorte", min = mia, max = mxa , value = c(mia,mxa), step = 1),
-        sliderInput(ns("edad"), "Edad", min = mie, max = mxe , value = c(mie,mxe), step = 1), 
-        icon = icon("gear", class = "opt"),
-        size="sm",
-        tooltip = tooltipOptions(title = "Opciones"),
-        status = "info"
-      ),
-      
-      renderPlot({pp()})
-    )
-  })
-  
-  return(pp)
-}  
-
-  
-salida3 <- function(input, output, session, name , bas , typeplot) {
-  ns <- session$ns
-  lista <- bas$selected
-  pp<- reactive({
-    plot(residuals(lista[[name]]), type = typeplot, reslim = c(-3.5, 3.5))
-  })
-  
-    output$plot <- renderUI({
-    div(renderPlot({pp()}))
-  })
-  
-  qq<- reactive({
-    plot(residuals(lista[[name]]), type = typeplot, reslim = c(-3.5, 3.5))
-  })
-  return(qq)
-}  
-  
-  
- 
- 
-  
   
 
