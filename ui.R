@@ -13,7 +13,7 @@ ui <-dashboardPage(
         
         
         
-     dashboardHeader(title = "Mortalidad2"),
+     dashboardHeader(title = "Mortalidad"),
      
      dashboardSidebar(
            sidebarMenu( id ="menu",
