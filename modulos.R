@@ -24,9 +24,9 @@ descriptivos_UI <- function(id, title) {
   ns <- NS(id)
   fluidRow(
        h2(title),
-       box(width = 4, title = "Rates respecto a edad", collapsible = TRUE,
+       tabBox(width = 4, title = "Rates respecto a edad",
            plot_con_opciones_UI(ns("age"))),
-       box(width = 4, title = "Rates respecto a year", collapsible = TRUE, 
+       tabBox(width = 4, title = "Rates respecto a year",  
            plot_con_opciones_UI(ns("year"))),
        tabBox(width=4, title = "Datos",
               tabPanel(title = "No tablas"
@@ -95,6 +95,17 @@ modelos_UI <- function(id, title) {
   ns <- NS(id)
   fluidRow(
     h2(title),
+    tabBox(width = 4, title = "Estimaciones",
+           tabPanel(title = "By Age",
+                  plot_con_opciones_UI(ns("eage"))  
+                    ),
+           tabPanel(title = "By Year",
+                    plot_con_opciones_UI(ns("eyear"))  
+                   ),
+           tabPanel(title = "Tabla",
+                    tabla_opciones_UI(ns("etabla")) 
+                    )
+         ),
     tabBox(width = 4, title = "Parameters",
           tabPanel(title = "Plot", 
             plot_con_opciones_UI(ns("parameters"))
@@ -108,10 +119,6 @@ modelos_UI <- function(id, title) {
           tabPanel(title = "Cohort",
                    tabla_opciones_UI(ns("cohort"))
           )
-          
-            
-           
-           
     ),
     tabBox(width = 4, title = "Residuales",
               tabPanel(title = "Scatterplot",
@@ -122,7 +129,10 @@ modelos_UI <- function(id, title) {
               ),
               tabPanel(title = "Signplot",
                     plot_con_opciones_UI(ns("signplot"))
-              )      
+              ),
+             tabPanel(title = "Tabla",
+                      tabla_opciones_UI(ns("tresiduales"))
+             )
           )   
      )
  }
@@ -130,6 +140,9 @@ modelos_UI <- function(id, title) {
 
 modelos_server <- function(input, output, session, name, bas) {
   ns <- session$ns
+  callModule(plot_con_opciones, "eage", salida5, name , bas, bytype = "ages")
+  callModule(plot_con_opciones, "eyear", salida5, name , bas, bytype = "years")
+  callModule(tabla_opciones_server, "etabla", tablafit, name, bas, "fitted")
   callModule(plot_con_opciones, "parameters", salida4, name , bas )
   callModule(tabla_opciones_server, "age", tablapar, name, bas, nombre = "ageparameters", type = "age")
   callModule(tabla_opciones_server, "year", tablapar, name, bas, nombre = "yearparameters", type = "year")
@@ -137,6 +150,7 @@ modelos_server <- function(input, output, session, name, bas) {
   callModule(plot_con_opciones, "residuals", salida3, name, bas, typeplot = "scatter") 
   callModule(plot_con_opciones, "heatmap", salida3,  name, bas, typeplot = "colourmap")
   callModule(plot_con_opciones, "signplot", salida3, name, bas, typeplot = "signplot")
+  callModule(tabla_opciones_server, "tresiduales", tablares, name , bas, "residuales") 
 }  
 
 

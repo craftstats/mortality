@@ -60,22 +60,31 @@ create_plot_i <- function(x, ages, years, type, series="female"){
 
 
 
-creaplot <- function(mod, x, y, value) {
-  if (y =="log") {
+plot_fitted <- function(mod, bywhat, tipo, value, inter = FALSE) {
+  if (tipo =="log") {
     type <- "link"
-    ylab  <- "log death rate"
+    ylab  <- "Log death rate"
+    uxt <- log(mod$Dxt / mod$Ext)
   }  else {
+    if (tipo == "rate") {
     type <- "rates"
-    ylab <-  "death" 
+    ylab <-  "Death rate"
+    uxt <- mod$Dxt / mod$Ext
+    } else {
+      type <- "deaths"
+      ylab <- "Number of deaths"
+      uxt <- mod$Dxt
+    }
   }
+  
   uxthat <- fitted(mod, type)
-  xlab = gsub("s", "", x, fixed =TRUE)
+  xlab = gsub("s", "", bywhat, fixed =TRUE)
   
   
-  uxt <- mod$Dxt / mod$Ext
+  
   
   valuechar <- as.character(value)
-  if(x == "years") {
+  if(bywhat == "years") {
       uxt = uxt[valuechar, ]
      uxthat <- uxthat[valuechar, ]
 } else {
@@ -83,12 +92,15 @@ creaplot <- function(mod, x, y, value) {
   uxthat <- uxthat[, valuechar]
   
 }
+
+  auxi <- data.frame(x = mod[[bywhat]], y = uxt, yhat = uxthat)
   
- # auxf <- function(m, uxt, yl, main, ) {
-    plot(mod[[x]], uxt, xlab = xlab, ylab = ylab, main = paste0("fitted vs. observed rates at ", value))
-    lines(mod[[x]], uxthat)
-  # }
-  # base2grob::base2grob(auxf()) 
+  p <- ggplot(auxi, aes(x,y)) + geom_point() + geom_line(aes(x, yhat, group = 1)) + 
+           ylab(ylab) + xlab(xlab) + ggtitle(paste0("fitted vs. observed rates at ", value)) +
+       theme_minimal()
+ 
+ if (inter) p <- plotly::ggplotly(p)
+  p
 }
 
 
@@ -103,11 +115,11 @@ key_pais <- function(v, val) {
 
 create_tabla_bases <- function(bas) {
   df <- data_frame(
-            nombre = names(bas),
-            pais =  map_chr(bas, "label"),
-            series = map_chr(bas, "series"),
-            edades = map_chr(bas, ~paste0(min(.$ages), " - ", max(.$ages))),
-            cohortes = map_chr(bas, ~paste0(min(.$years), " - ", max(.$years))),
+            Nombre = names(bas),
+            Pais =  map_chr(bas, "label"),
+            Series = map_chr(bas, "series"),
+            Ages = map_chr(bas, ~paste0(min(.$ages), " - ", max(.$ages))),
+            Years = map_chr(bas, ~paste0(min(.$years), " - ", max(.$years))),
   )
 }
 

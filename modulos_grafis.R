@@ -22,7 +22,7 @@ plot_con_opciones <- function(input, output, session, tiposalida, name, bas, ...
   onclick("zoom", {
     showModal(
       modalDialog(
-        renderPlot({plo()}, height = 600),
+        renderPlot({plo()}, height = 720),
         easyClose = TRUE, size = "l", footer = NULL
       ))
   }
@@ -31,7 +31,7 @@ plot_con_opciones <- function(input, output, session, tiposalida, name, bas, ...
   output$down <- downloadHandler(
     filename = function() { paste("name", '.png', sep='') },
     content = function(file) {
-      png(file)
+      png(file, width = 720, height = 720)
       print(plo())
       dev.off()
     }
@@ -62,7 +62,7 @@ salida1 <- function(input, output, session, name , bas , typeplot) {
   
   output$plot <- renderUI({
     div(
-      dropdownButton( 
+      dropdown( 
         sliderInput(ns("anos"), "Years", min = mia, max = mxa , value = c(mia,mxa), step = 1),
         sliderInput(ns("edad"), "Edad", min = mie, max = mxe , value = c(mie,mxe), step = 1), 
         icon = icon("gear", class = "opt"),
@@ -103,7 +103,7 @@ salida2 <- function(input, output, session, name , bas , typeplot) {
   
   output$plot <- renderUI({
     div(
-      dropdownButton( 
+      dropdown( 
         sliderInput(ns("anos"), "Years", min = mia, max = mxa , value = c(mia,mxa), step = 1),
         sliderInput(ns("edad"), "Edad", min = mie, max = mxe , value = c(mie,mxe), step = 1), 
         icon = icon("gear", class = "opt"),
@@ -123,16 +123,29 @@ salida2 <- function(input, output, session, name , bas , typeplot) {
 salida3 <- function(input, output, session, name , bas , typeplot) {
   ns <- session$ns
   lista <- bas$selected
-  pp<- reactive({
-    plot(residuals(lista[[name]]), type = typeplot, reslim = c(-3.5, 3.5))
-  })
   
+ lim <- reactive({
+   if (is.null(input$reslim)) lim <- 3.5
+   else lim <- input$reslim
+   lim
+ })
+   
   output$plot <- renderUI({
-    div(renderPlot({pp()}))
+    div(
+      dropdown(
+        sliderInput(ns("reslim"), "Residuals limit", min = 1, max = 15, value = 3.5, step =0.5),
+        icon = icon("gear", class = "opt"),
+        size="sm",
+        tooltip = tooltipOptions(title = "Opciones"),
+        status = "info"
+      ),
+       
+       renderPlot({ plot(residuals(lista[[name]]), type = typeplot, reslim = c(-lim(), lim()))})
+      )
   })
   
   qq<- reactive({
-    plot(residuals(lista[[name]]), type = typeplot, reslim = c(-3.5, 3.5))
+    plot(residuals(lista[[name]]), type = typeplot, reslim = c(-lim(), lim()))
   })
   return(qq)
 }  
@@ -142,11 +155,81 @@ salida4 <- function(input, output, session, name , bas) {
   lista <- bas$selected
   
   output$plot <- renderUI({
-    div(renderPlot({plot(lista[[name]], parametricbx = FALSE)}))
+    div(
+      dropdown(
+        prettyToggle(ns("showall"), label_on = "Muetra todos", 
+                     label_off = "Muetra todos", value = FALSE, icon_on = icon("check"),
+                     status_on = "info", status_off = "warning", icon_off = icon("remove")),
+        icon = icon("gear", class = "opt"),
+       size="sm",
+       tooltip = tooltipOptions(title = "Opciones"),
+       status = "info"
+  ),
+    renderPlot({plot(lista[[name]], parametricbx = input$showall)}))
   })
   
   qq<- reactive({
-    plot(lista[[name]], parametricbx = FALSE)
+    plot(lista[[name]], parametricbx = input$showall)
   })
   return(qq)
 }  
+
+
+salida5 <- function(input, output, session, name , bas, bytype) {
+  ns <- session$ns
+  base <- bas$selected[[name]]
+  if (bytype == "ages") {
+    mi <- min(base$years)
+    ma <- max(base$years)
+    val <- 2000
+    text <- "Year"
+    
+  } else {
+    mi <- min(base$ages)
+    ma <- min(max(base$ages))
+    val <- 65
+    text <- "Age"
+  }   
+  
+  output$slider <- renderUI({
+    sliderInput(ns("filter"), text, min = mi, max = ma , value = val, step = 1)
+  })    
+  
+  pp <- reactive({
+    req(input$filter)
+    plot_fitted(base, bytype, input$type, input$filter, input$inter)
+    
+    
+  })
+  
+  output$plot <- renderUI({
+    div(
+      dropdown(
+        uiOutput(ns("slider")),
+        awesomeRadio(ns("type"), label = "Medida", choices = c("Rates", "LogRates", "Deaths"), 
+                  inline = TRUE, checkbox = TRUE),  
+        prettyToggle(ns("inter"), label_on = "Plot interactivo", 
+                     label_off = "Plot interactivo", value = FALSE, icon_on = icon("check"),
+                     status_on = "info", status_off = "warning", icon_off = icon("remove")),
+        icon = icon("gear", class = "opt"),
+        size="sm",
+        tooltip = tooltipOptions(title = paste0("Choose ", text, " y otras opciones")),
+        status = "info"
+       ),
+       uiOutput(ns("ppp"))
+      )
+  })
+  
+  output$ppp <- renderUI({
+    #if (is.null(input$inter)) inter <- FALSE
+    #else inter <- input$inter
+    
+    if (input$inter) div(renderPlotly({pp()}))
+    else div(renderPlot({pp()}))
+    
+  })
+  
+ 
+  return(pp)
+}  
+

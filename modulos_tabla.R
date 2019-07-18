@@ -28,7 +28,7 @@ tabla_opciones_server <- function(input, output, session, tiposalida, name, bas,
 
 tablaUI <- function(id) {
   ns <- NS(id)
-  uiOutput(ns("tabla"))
+     uiOutput(ns("tabla"))
 }
 
 tablapar <- function(input, output, session, name , bas , type) {
@@ -43,7 +43,7 @@ tablapar <- function(input, output, session, name , bas , type) {
   output$tabla <- renderUI({
     div(renderDT({
        datatable(datos, extensions = c("Scroller"), class = "display compact",
-              options = list(dom = 't', scroller=TRUE, scrollY = 400)) %>% 
+              options = list(dom = 't', scroller=TRUE, scrollY = 400, scrollX = 100)) %>% 
               formatRound(2:7,3)
       })
     )
@@ -63,12 +63,13 @@ tabladata <- function(input, output, session, name , bas , type) {
     datos          
   })
   output$tabla <- renderUI({
-    div(renderDT({
-    datatable(datos, extensions = c("Scroller"), class = "display compact",
-              options = list(dom = 't', scroller=TRUE, scrollY = 400)) %>% 
-      formatRound(2:150,3)
-    })
-    )
+    div(
+      renderDT({
+        datatable(datos, extensions = c("Scroller"), class = "display compact",
+              options = list(dom = 't', scroller=TRUE, scrollY = 400, scrollX = 100)) %>% 
+        formatRound(2:150,3)
+       })
+    )  
   })
   return(tabla)
 }  
@@ -114,18 +115,70 @@ tablalt <- function(input, output, session, name , bas , type) {
   
  output$tabla <- renderUI({
     div(
-      dropdownButton( 
+      dropdown( 
         uiOutput(ns("filter1")),
         icon = icon("gear", class = "opt"),
         size="sm",
-        status = "info"
+        status = "info", tooltip = tooltipOptions(title =paste0("Choose ", text))
        ),
       renderDT({
         datatable(tabla(), extensions = c("Scroller"), class = "display compact",
-              options = list(dom = 't', scroller=TRUE, scrollY = 400)) %>% 
+              options = list(dom = 't', scroller=TRUE, scrollY = 400, scrollX = 100)) %>% 
         formatRound(2:150,3)
        })
     )
    })  
   return(tabla)
+}  
+
+
+tablares <- function(input, output, session, name , bas , type) {
+  ns <- session$ns
+  model <- bas$selected[[name]]
+  datos <- residuals(model)
+  datos <- as.data.frame(cbind(Age = datos$ages, datos$residuals))
+  tabla <- reactive({
+    datos          
+  })
+  output$tabla <- renderUI({
+    div(renderDT({
+      datatable(datos, extensions = c("Scroller"), class = "display compact",
+                options = list(dom = 't', scroller=TRUE, scrollY = 400, scrollX = 100)) %>% 
+        formatRound(2:170,3)
+    })
+    )
+  })
+  return(tabla)
+  
+}  
+
+
+tablafit <- function(input, output, session, name , bas) {
+  ns <- session$ns
+  model <- bas$selected[[name]]
+  tabla <- reactive({
+    if (is.null(input$type)) type <- "rates"
+    else type <- input$type
+    tabla <-  tibble::rownames_to_column(as.data.frame(fitted(model, type)), var = "Age")         
+  })
+  output$tabla <- renderUI({
+     div(
+       dropdown( 
+         awesomeRadio(ns("type"), "Tipo:", choices = c(Rates = "rates", LogRates = "link", Deaths = "deaths"), 
+                      inline = TRUE, checkbox = TRUE),
+         icon = icon("gear", class = "opt"),
+         size="sm",
+         tooltip = tooltipOptions(title = "Opciones"),
+         status = "info"
+        ),
+         renderDT({
+             datatable(tabla(), extensions = c("Scroller"), class = "display compact",
+                options = list(dom = 't', scroller=TRUE, scrollY = 400, scrollX = 100)) %>% 
+             formatRound(2:170,3)
+        })
+       
+     )   
+  })
+  return(tabla)
+  
 }  

@@ -135,8 +135,11 @@ req(input$file2)
     
     if (!(pais %in% names(HMD))) {
       tryCatch({
-        HMD[[pais]] <-hmd.mx2(country=input$pais, username=input$usuario, password=input$passw, label= pais)
-        bases$memoria[[nombre]] <- StMoMoData(HMD[[pais]], series = input$serieXXX)
+        withProgress(
+          HMD[[pais]] <-hmd.mx2(country=input$pais, username=input$usuario, password=input$passw, label= pais),
+          message = "Cargando datos", min = 0, max = 100, val = 30
+                      )
+         bases$memoria[[nombre]] <- StMoMoData(HMD[[pais]], series = input$serieXXX)
          bases$actual <-  bases$memoria[[nombre]]
         return(TRUE)                                
         
@@ -225,7 +228,10 @@ output$descri <- renderUI({
         selectInput("basemodelo", "Datos", choices = names(bases$memoria),  selectize = FALSE),
         helper(
           radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"),
-                            justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon")))
+                            justified = TRUE, status = "primary",
+                            checkIcon = list(yes = icon("ok", lib = "glyphicon"),
+                                             no = icon("remove",
+                                                       lib = "glyphicon")))
               ,type = "markdown", content = "models", size="l") ,
         prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links,
                                icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
@@ -258,16 +264,20 @@ output$descri <- renderUI({
         req(input$modelo)
         switch(input$modelo,
                "LC" = radioGroupButtons(inputId = "const", label = "Constraint to impose", choices = c("sum", "last", "first"),
-                                        justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon"))),
+                                        justified = TRUE,  status = "warning", checkIcon = list(yes = icon("ok", lib = "glyphicon"),
+                                                                                                no = icon("remove",
+                                                                                                          lib = "glyphicon"))),
                "M8" = numericInput(inputId = "xc", label = "Cohort age modulating parameter", value = floor((input$anosmodelo[1] + input$anosmodelo[2])/2)),
                "RH" = div(
                         radioGroupButtons(inputId = "cohortAgeFun", label = "Cohort age modulating parameter", choices = c("NP", "1"),
-                                   justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon"))),
-                        prettyToggle(inputId = "approxConst", label_on = "Constraint of Hunt and Villegas (2015) applied", icon_on = icon("check"),
-                             status_on = "info", status_off = "warning", label_off = "Constraint of Hunt and Villegas (2015) not applied",
+                                   justified = TRUE, status = "warning", checkIcon = list(yes = icon("ok", lib = "glyphicon"),
+                                                                      no = icon("remove",
+                                                                                lib = "glyphicon"))),
+                        prettyToggle(inputId = "approxConst", label_on = "Aplicar constraint of Hunt and Villegas (2015)", icon_on = icon("check"),
+                             status_on = "info", status_off = "warning", label_off = "Aplicar constraint of Hunt and Villegas (2015)",
                             icon_off = icon("remove"), value = FALSE),
                         prettyToggle(inputId = "LCfirst", label_on = "Utilizar LC para los valores iniciales", icon_on = icon("check"),
-                                     status_on = "info", status_off = "warning", label_off = "Sin utilizar LC paraa los valores iniciales",
+                                     status_on = "info", status_off = "warning", label_off = "Utilizar LC para los valores iniciales",
                                      icon_off = icon("remove"), value = FALSE)
                          )
               )
