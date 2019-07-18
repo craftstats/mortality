@@ -18,8 +18,8 @@ ui <-dashboardPage(
      dashboardSidebar(
            sidebarMenu( id ="menu",
                menuItem("Datos", tabName = "menu_datos"),
-               menuItem("Gráficos descriptivos", tabName = "menu_grafi",
-                         badgeLabel = "Sin datos", badgeColor = "red"), 
+               menuItem("Gráficos descriptivos", tabName = "menu_grafi"),
+                          
                menuItem("Lifetables", tabName = "menu_life"),
                menuItem("Construct models", tabName = "menu_models"),
                menuItem("Evaluate models", tabName = "menu_plotmodels"),

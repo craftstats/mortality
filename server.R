@@ -168,11 +168,15 @@ req(input$file2)
 # Tabla de datos --------------------------------------------------------
 
  output$tablebases <- renderDT({
+   if (length(bases$memoria)!=0)
    datatable(create_tabla_bases(bases$memoria))
+   else NULL
  })
  
  output$lista_exluidos <- renderTable({
-   create_tabla_bases(bases$memoria)$nombre[input$tablebases_rows_selected]
+   if (length(bases$memoria)!=0)
+   create_tabla_bases(bases$memoria)$Nombre[input$tablebases_rows_selected]
+   else NULL
  })
  
  observeEvent(input$borrar,{
