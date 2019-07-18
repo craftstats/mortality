@@ -33,7 +33,7 @@ ui <-dashboardPage(
              tabItems(
                tabItem(tabName = "menu_datos",
                     fluidRow(
-                      box(width = 4,
+                      box(status = "primary", solidHeader = TRUE, width = 4,
                         radioButtons("input_type", "Lectura de datos",
                                      c("Human Mortality Database"="hmd", "Archivo"="archivo")
                         )
@@ -43,10 +43,10 @@ ui <-dashboardPage(
                      hr(),
                       hr(),
                     
-                    fluidRow(box(width = 8, title = "Lista de datos cargados",  
+                    fluidRow(box(status = "primary", solidHeader = TRUE, width = 8, title = "Lista de datos cargados",  
                                  dataTableOutput("tablebases")
                               ),
-                             box(width = 4, title = "Datos que no se utilizaran",
+                             box(status = "primary", solidHeader = TRUE, width = 4, title = "Datos que no se utilizaran",
                                  tableOutput('lista_exluidos'),
                                  div(actionBttn("borrar", icon =icon("trash")), align = "right")
                              )
@@ -60,21 +60,21 @@ ui <-dashboardPage(
                    
             ),
            tabItem(tabName = "menu_models",
-                   fluidRow(box(width = 6, title = "Create Model",
+                   fluidRow(box(status = "primary", solidHeader = TRUE, width = 6, title = "Create Model",
                                 uiOutput("create_model")
                              
                            ),
-                           box(width = 6, title = "Creating Model",
+                           box(status = "primary", solidHeader = TRUE, width = 6, title = "Creating Model",
                                withSpinner(verbatimTextOutput("show_models"))
                       )
                    ),
                    hr(),
                    hr(),
                    
-                   fluidRow(box(width = 10, title = "Lista de modelos cargados",  
+                   fluidRow(box(status = "primary", solidHeader = TRUE, width = 10, title = "Lista de modelos cargados",  
                                 dataTableOutput("tablemodelos")
                    ),
-                   box(width = 2, title = "Modelos que no se utilizaran",
+                   box(status = "primary", solidHeader = TRUE, width = 2, title = "Modelos que no se utilizaran",
                        tableOutput('modelos_exluidos'),
                        div(actionBttn("borrar_mod", icon =icon("trash")), align = "right")
                    )
@@ -87,11 +87,11 @@ ui <-dashboardPage(
            
            ),
            tabItem(tabName = "menu_forecast",
-                   fluidRow(box(width = 6, title = "Create forecast",
+                   fluidRow(box(status = "primary", solidHeader = TRUE, width = 6, title = "Create forecast",
                                 uiOutput("create_forecast")
                                 
                    ),
-                   box(width = 6, title = "Creating forecast",
+                   box(status = "primary", solidHeader = TRUE, width = 6, title = "Creating forecast",
                        withSpinner(verbatimTextOutput("show_forecast"))
                    )
                    )

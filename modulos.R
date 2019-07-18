@@ -23,7 +23,7 @@ run3 <- function(bas, fserver) {
 descriptivos_UI <- function(id, title) {
   ns <- NS(id)
   fluidRow(
-       h2(title),
+    fluidRow(column(width =3), box(width = 6, status = "primary", h4(title))),
        tabBox(width = 4, title = "Rates respecto a edad",
            plot_con_opciones_UI(ns("age"))),
        tabBox(width = 4, title = "Rates respecto a year",  
@@ -60,7 +60,7 @@ descriptivos_server <- function(input, output, session, name, bas) {
 lifetables_UI <- function(id, title) {
   ns <- NS(id)
   fluidRow(
-    h2(title),
+    fluidRow(column(width =3), box(width = 6, status = "primary", h4(title))),
     tabBox(width = 6, title = "Esperanza respecto a edad", 
               tabPanel(title = "Plot",
                 plot_con_opciones_UI(ns("agelt"))
@@ -94,7 +94,7 @@ lifetables_server <- function(input, output, session, name, bas) {
 modelos_UI <- function(id, title) {
   ns <- NS(id)
   fluidRow(
-    h2(title),
+    fluidRow(column(width =3), box(width = 6, status = "primary", h4(title))),
     tabBox(width = 4, title = "Estimaciones",
            tabPanel(title = "By Age",
                   plot_con_opciones_UI(ns("eage"))  

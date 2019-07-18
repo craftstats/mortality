@@ -23,10 +23,10 @@ server <-function(input, output, session) {
   
   
   HMD <- reactiveValues()
-  bases <- reactiveValues(memoria = list("España_female" = llll), actual = NULL, selected = NULL)
+  bases <- reactiveValues(memoria = list(), actual = NULL, selected = NULL)
   HMD[["España"]] <- lll
  # observe({bases$memoria[["España_female"]]<-llll})
-  modelos <- reactiveValues(memoria = list("LCprueba" = jjj), selected = NULL, actual = NULL)
+  modelos <- reactiveValues(memoria = list(), selected = NULL, actual = NULL)
   model2 <- reactiveValues(descri = list())
   
   
@@ -39,7 +39,7 @@ server <-function(input, output, session) {
     if (is.null(input$input_type)) return()
       switch(input$input_type,
           "hmd" = div(
-            box (width=4,
+            box(status = "primary", solidHeader = TRUE, width=4,
             textInput("usuario", "Usuario", "rebeldatalab@gmail.com"),
             textInput("passw", "Contraseña", "1562189576"),
             selectInput("pais", "Pais", choices = paises, selected = "ESP", selectize = TRUE),
@@ -47,7 +47,7 @@ server <-function(input, output, session) {
                                icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
             actionButton(inputId = "carga",label = "Cargar")
             ),
-            box(width = 4,
+            box(status = "primary", solidHeader = TRUE,width = 4,
                 #withSpinner(
                   verbatimTextOutput("summary_hmd")
                  # )
@@ -55,7 +55,7 @@ server <-function(input, output, session) {
           ),
             
          "archivo" =  div(
-                      box(width=4,  
+                   box(status = "primary", solidHeader = TRUE, width=4,  
                       fileInput("file1", "Archivo con la matriz de ratios",
                                 multiple = FALSE,
                                 accept = c(".xlsx")
@@ -71,7 +71,7 @@ server <-function(input, output, session) {
                                          selected = NULL, multiple = FALSE, options= list(create = TRUE)),
                          actionBttn(inputId = "archicarga", label = "Cargar")
                        ),
-                      box(width=4,
+                   box(status = "primary", solidHeader = TRUE, width=4,
                           #withSpinner(
                             verbatimTextOutput("summary_exc")
                             #)
