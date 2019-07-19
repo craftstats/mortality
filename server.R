@@ -255,10 +255,11 @@ output$descri <- renderUI({
         mxy <- max(bases$memoria[[val]]$year)
         mia <- min(bases$memoria[[val]]$age)
         mxa <- max(bases$memoria[[val]]$age)
+        vxa <- min(mxa, 100)
         updatePrettyRadioButtons(session, "link", selected = 
                                  ifelse(input$modelo %in% c("CBD", "PLAT", "M6", "M7", "M8"), "logit", "log"))
         updateSliderInput(session, "anosmodelo", min = miy, max = mxy , value = c(miy,mxy), step = 1)
-        updateSliderInput(session, "edadmodelo", min = mia, max = mxa , value = c(mia,mxa), step = 1)
+        updateSliderInput(session, "edadmodelo", min = mia, max = mxa , value = c(mia,vxa), step = 1)
 
         updateTextInput(session, "namemodelo", value = paste0("Mod", input$runmodel, input$modelo))
       })

@@ -1,4 +1,15 @@
 .opt {
     margin-right: 0px;
 }
+.nav-tabs-custom>.nav-tabs>li.header {
+    line-height: 35px;
+    padding: 0 10px;
+    font-size: 20px;
+    color: #337ab7;
+}
+
+.h4,  h4 {
+    font-family: -webkit-pictograph;
+    color:#337ab7;
+}
 
