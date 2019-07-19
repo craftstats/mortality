@@ -154,5 +154,23 @@ modelos_server <- function(input, output, session, name, bas) {
 }  
 
 
-  
+fores_UI <- function(id, title) {
+  ns <- NS(id)
+  fluidRow(
+    fluidRow(column(width =3), box(width = 6, status = "primary", h4(title))),
+    tabBox(width = 6, title = "Parameters",
+           tabPanel(title = "Plot",
+                    plot_con_opciones_UI(ns("plot"))  
+           ),
+           tabPanel(title = "Tabla",
+              tabla_opciones_UI(ns("tabla")) 
+           )
+    )  
+  )
+}
 
+fores_server <- function(input, output, session, name, bas) {
+  ns <- session$ns
+  callModule(plot_con_opciones, "plot", salida4, name , bas)
+  callModule(tabla_opciones_server, "tabla", tablacofore, name , bas, "forecastcoef") 
+}  

@@ -181,4 +181,24 @@ tablafit <- function(input, output, session, name , bas) {
   })
   return(tabla)
   
+} 
+
+
+tablacofore <- function(input, output, session, name , bas , type) {
+  ns <- session$ns
+  fore <- bas$selected[[name]]
+  datos <- coef_fores(fore)
+  tabla <- reactive({
+    datos          
+  })
+  output$tabla <- renderUI({
+    div(renderDT({
+      datatable(datos, extensions = c("Scroller"), class = "display compact",
+                options = list(dom = 't', scroller=TRUE, scrollY = 400, scrollX = 100)) %>% 
+        formatRound(2:170,3)
+    })
+    )
+  })
+  return(tabla)
+  
 }  

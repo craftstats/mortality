@@ -25,10 +25,9 @@ server <-function(input, output, session) {
   HMD <- reactiveValues()
   bases <- reactiveValues(memoria = list(), actual = NULL, selected = NULL)
   HMD[["España"]] <- lll
- # observe({bases$memoria[["España_female"]]<-llll})
   modelos <- reactiveValues(memoria = list(), selected = NULL, actual = NULL)
   model2 <- reactiveValues(descri = list())
-  
+  fores <- reactiveValues(memoria = list(), actual = NULL, selected = NULL, descri = list())
   
   
   
@@ -388,199 +387,165 @@ output$descri <- renderUI({
         })
 
 
- 
-#         tabPanel(
-#           title = "Table",
-#           div(DT::dataTableOutput("table"),style = "font-size: 85%"),
-#           div(
-#             #style = "position: absolute; left: 0.5em; bottom: 0.5em;",
-#             dropdown(
-#               sliderInput("ano3", "Año", min = mi, max = mx , value = mx, step = 1),
-#               size = "xs",
-#               icon = icon("gear", class = "opt"),
-#               up = TRUE
-#             )
-#           )
-#            
-#           
-#         )
-# 
-#       
-#       )  
-#   })
-# 
-#   
-#   
-# plooo<- eventReactive(input$ano2,{
-#     years = seq(input$ano2[[1]], input$ano2[[2]], 1)
-#     p<-plot(lifetable(bases[[input$pais3]], years=years))
-#     p
-#     })
-# 
-# output$plot_life1 <- renderPlot({
-#    plooo()
-#   })
-#   
-#   observeEvent((input$zoom), {
-#     showModal(modalDialog(
-#       renderPlot({
-#         years = seq(input$ano2[[1]], input$ano2[[2]], 1)
-#         p<-plot(lifetable(bases[[input$pais3]], years=years))
-#         p
-#       }, height = 600),
-#       easyClose = TRUE,
-#       size = "l",
-#       footer = NULL
-#     ))
-#   })
-#   
-#   output$table <- renderDT({
-#     req(input$ano3)
-#     auxi <-lifetable(bases[[input$pais3]], years=input$ano3)
-#     ltable <- with(auxi, data.frame(mx = mx[-1], qx = qx[-1], lx = lx[-1], dx = dx[-1], Lx =  Lx[-1], Tx =  Tx[-1], ex = ex[-1]))
-#     pp<-datatable(ltable, class = "display compact", extensions = c("Buttons", "Scroller"), options = list(
-#                                  dom = 'Bt',
-#                                  scrollY = 400,
-#                                  scroller=TRUE,
-#                                  buttons = list(list(extend = "collection",
-#                                                      text = 'Download',
-#                                                      action = DT::JS("function ( e, dt, node, config ) {
-#                                     Shiny.setInputValue('test', true, {priority: 'event'});}")))))
-#     formatRound(pp, 1:7,3)          
-# 
-#   })
-#   
-#   
 
-#   
+# Definir forecast --------------------------------------------------------
 
-#   
-#   
+        output$create_forecast <- renderUI({
+          div(
+            selectInput("modelofore", "Modelo: ", choices = names(modelos$memoria),  selectize = FALSE),
+            sliderInput("anosfore", "Años a predecir:", min = 1, max = 200 , value = 50, step = 1),
+            prettyRadioButtons(inputId = "metodoperiodo", label = "Método para el periodo:", 
+                               choices = c("Random walk" = "mrwd", "Arima" = "iarima"), 
+                               icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+            uiOutput("ktarima"),
+            uiOutput("gcarima"),
+            prettyRadioButtons(inputId = "salto", label = "Método para el salto:", 
+                               choices = c("Estimación" = "fit", "Observado" = "actual")),
+            textInput("namefore",label= "Nombre de la predicción:"),
+            actionBttn(inputId = "runfore", label = "Run forecast", icon = icon("gear"), style = "simple", color = "success")
+          )
+          
+        })
+        
+        observe( {
+          req(input$modelofore)
+          updateTextInput(session, "namefore", value = paste0("Forecast", input$runfore, input$modelofore, input$anosfore))
+        })
+        
+        
+        output$ktarima <- renderUI({
+          if (req(input$metodoperiodo) == "iarima") {
+             div( prettyToggle(inputId = "ktarimaauto", label_on = "Automático", icon_on = icon("check"),
+                          status_on = "info", status_off = "warning", label_off = "Automático",
+                          icon_off = icon("remove"), value = FALSE),
+                  uiOutput("ktarimano")
+             )
+               
+            
+          }
+                 
+        })   
+        
+        output$ktarimano <- renderUI({
+          req(!is.null(input$ktarimaauto))
+          if (input$ktarimaauto == FALSE){
+            div(
+              fluidRow(
+               column(width=4, numericInput("ktarimap", "P", value = 1, min = 0)),
+               column(width=4, numericInput("ktarimad", "D", value = 1, min = 0)),
+               column(width=4, numericInput("ktarimaq", "Q", value = 0, min = 0))
+              )
+            )  
+          }
+      })
+        
+        output$gcarima <- renderUI({
+           req(input$modelofore) 
+          if (model2$descri[[input$modelofore]]$Modelo %in% c("APC", "RH", "M6", "M7", "M8", "PLAT")) {
+          
+            div( prettyRadioButtons(inputId = "gcarimaauto", label = "Método Arima para las cohortes:", 
+                                    choices = c("Elige" = "noaut", "Automático" = "aut"), 
+                                    icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
+                 uiOutput("gcarimano")
+            )
+          }
+          
+        })   
+        
+        output$gcarimano <- renderUI({
+          if (req(input$gcarimaauto) == "noaut"){
+            div(
+              fluidRow(
+                column(width=4, numericInput("gcarimap", "P", value = 1, min = 0)),
+                column(width=4, numericInput("gcarimad", "D", value = 1, min = 0)),
+                column(width=4, numericInput("gcarimaq", "Q", value = 0, min = 0))
+              )
+            )  
+          }
+        })
+        
+        
 
-#    
-#  
-#   
+# Create forecast ---------------------------------------------------------
 
-# 
-#  
-#   
-#   
-#   output$modeloutput <- renderUI({
-#     req(sal_mod())
-#     type_rate <- "g"
-#     div(
-#       
-#       tabBox(width = 4, title = paste(input$mod_name, "Fitted"),
-#             tabPanel(title = "Plot(cohort)",
-#                      sliderInput("coho1", "Choose cohort:", min = min(sal_mod()$years), max = max(sal_mod()$years),
-#                                                             value = max(sal_mod()$years)),
-#                      renderPlot(creaplot(sal_mod(), "ages", type_rate, input$coho1))
-#             ),
-#             tabPanel(title = "Plot(age)",
-#                      sliderInput("age11", "Choose age:", min = min(sal_mod()$ages), max = max(sal_mod()$ages),
-#                                  value = max(sal_mod()$ages)),
-#                      renderPlot(creaplot(sal_mod(), "years", type_rate, input$age11))
-#             )
-#             
-#              
-#       ),
-#       tabBox(width = 4, title = paste(input$mod_name, "Parameters"),
-#             tabPanel(title = "Plots",
-#                 renderPlot(plot(sal_mod(), parametricbx = FALSE)),
-#                 div(
-#                   style = "position:absolute;right:0.5em;bottom: 0.5em;",
-#                   actionBttn(inputId = "zoom2", icon = icon("search-plus", class = "opt"),
-#                                    style = "fill", color = "danger", size = "xs")
-#                 )
-#           
-#             ),
-#             tabPanel(title = "Age parameters",
-#                         DT::dataTableOutput("table2")
-#             ),
-#             tabPanel(title = "Cohort parameters",
-#                      DT::dataTableOutput("table3")
-#             )
-#         
-#       ),
-#       tabBox(width = 4, title = paste(input$mod_name, "residuals"),
-#             tabPanel(title = "Plot", 
-#                 renderPlot(plot(residuals(sal_mod()), type="scatter"))
-#             ),
-#             tabPanel(title = "Heatmap",
-#                 renderPlot(plot(residuals(sal_mod()), type = "colourmap"))
-#             ),
-#             tabPanel(title = "Table",
-#                 actionBttn(inputId = "showtable")     
-#             )
-#             
-#       )
-#     )
-#     
-#   })
-#   observeEvent(input$showtable,{
-#     table <- residuals(req(sal_mod()))$residuals
-#     showModal(modalDialog(
-#       renderDT(datatable(table), height = 600),
-#       easyClose = TRUE,
-#       size = "l",
-#       footer = NULL
-#     ))
-#     
-#     
-#   })
-#   
-#   
-#   observeEvent((input$zoom2), {
-#     showModal(modalDialog(
-#         renderPlot(plot(sal_mod(), parametricbx = FALSE), height = 600),
-#         easyClose = TRUE,
-#         size = "l",
-#         footer = NULL
-#     ))
-#   })
-#   output$table2 <- renderDT({
-#     req(sal_mod())
-#     cb_coef_age(sal_mod()) %>% datatable() %>% 
-#     formatRound(1:7,3)          
-#     
-#   })
-#  
-#   
-#   
-#   
-#   output$create_forecast <- renderUI({
-#     h <- 1
-#     req(sal_mod())
-#     
-#     div( 
-#       selectInput("modelofore", "Pais", choices = input$mod_name,  selectize = FALSE),
-#       prettyRadioButtons(inputId = "serie2", label = "Choose serie:", choices = c("female", "male", "total"), 
-#                          icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-#       
-#       helper( 
-#         radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"), 
-#                           justified = TRUE, checkIcon = list(yes = icon("ok", lib = "glyphicon")))
-#         ,type = "markdown", content = "models", size="l") ,
-#       prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links, 
-#                          icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-#       sliderInput("ano4", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
-#       sliderInput("edad3", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
-#       uiOutput("extra_param"),
-#       textInput("mod_name", ""),
-#       
-#       
-#       actionBttn(inputId = "runmodel", label = "Run model", icon = icon("gear"), style = "simple", color = "success")
-#       
-#       
-#       
-#     )
-#     
-#   })
-#   
-#   
-#   
-  
-  
+
+        flag_fore <- eventReactive(input$runfore, {
+          nombre <- trimws(input$namefore)
+      
+            
+            auxi  <- forecast(modelos$memoria[[input$modelofore]],
+                        h = input$anosfore,
+                        kt.method = input$metodoperiodo,
+                        kt.order = c(input$ktarimap, input$ktarimad, input$ktarimaq),
+                        gc.order = c(input$gcarimap, input$gcarimad, input$gcarimaq),
+                        jumpchoice = input$salto
+                      )
+           
+                      fores$memoria[[nombre]] <- auxi
+                      fores$actual <- auxi
+                      fores$descri[[nombre]] <- list(Nombre = nombre,
+                                                      Modelo = input$modelofore,
+                                                       Avance= input$anosfore,
+                                                       Periodo = ifelse(input$metodoperiodo == "mrwd", "Random walk", "Arima"),
+                                                       ArimaPeriodo = ifelse(input$metodoperiodo == "mrwd", "",
+                                                                             paste(input$ktarimap, input$ktarimad, input$ktarimaq)),
+                                                       ArimaCohorte = ifelse(is.null(auxi$gc.f), "", 
+                                                                             paste(input$gcarimap, input$gcarimad, input$gcarimaq)),
+                                                       Ages = paste0(min(auxi$ages),"-", max(auxi$ages)),
+                                                       Years = paste0(min(auxi$years),"-", max(auxi$years)),
+                                                       Jump = ifelse(input$salto == "fit", "Estimación", "Observado")
+                                                    )
+                     
+            })
+        
+        output$show_forecast <- renderPrint({
+          req(flag_fore())
+          #nombre <- trimws(input$namemodelo)
+          fores$actual
+        })
+        
+        
+
+# Tabla de forecast -------------------------------------------------------
+
+        output$tablefores <- renderDT({
+          
+          if (length(fores$memoria)>0)
+            datatable(map_df(fores$descri, `[`), class = "display compact",
+                      options = list(dom = 't', scroller=TRUE, scrollY = 400, scrollX = 100))
+        })
+        
+        output$fores_exluidos <- renderTable({
+          if (length(fores$memoria)>0)
+            map_df(fores$descri, `[`)$Nombre[input$tablefores_rows_selected]
+        })
+        
+        observeEvent(input$borrar_fore,{
+          if (!is.null(input$tablefores_rows_selected)) {
+            fores$memoria <- fores$memoria[-input$tablefores_rows_selected]
+            fores$descri <- fores$descri[-input$tablefores_rows_selected]
+            fores$selected <- fores$memoria
+            fores$actual <- NULL
+          }
+        })
+        
+        observe({
+          req(input$tablefores_rows_selected)
+          fores$selected <- fores$memoria[-input$tablefores_rows_selected]
+        })
+        
+                
+
+# Show forecast -----------------------------------------------------------
+
+        output$foresoutput <- renderUI({
+          if (is.null(input$tablefores_rows_selected)) {fores$selected <- fores$memoria}
+          else {fores$selected <- fores$memoria[-input$tablefores_rows_selected]}
+          run3(fores, fores_server)
+          deploy3(fores$selected, fores_UI)
+          
+        })
+        
     
   
 }

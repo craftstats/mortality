@@ -57,7 +57,7 @@ salida1 <- function(input, output, session, name , bas , typeplot) {
   pp<- reactive({
     plot(datos, ages=seq(input$edad[1], input$edad[2], 1), 
          years=seq(input$anos[1], input$anos[2], 1),
-         plot.type = typeplot)
+         plot.type = typeplot, transform = input$log)
   })
   
   output$plot <- renderUI({
@@ -65,6 +65,8 @@ salida1 <- function(input, output, session, name , bas , typeplot) {
       dropdown( 
         sliderInput(ns("anos"), "Years", min = mia, max = mxa , value = c(mia,mxa), step = 1),
         sliderInput(ns("edad"), "Edad", min = mie, max = mxe , value = c(mie,mxe), step = 1), 
+        prettyToggle(ns("log"), label_on = "Tansformación logarítmica", label_off = "Transformación logarítmica",
+                     value = TRUE, status_on = "success", status_off = "warning", icon_on = icon("check"), icon_off = icon("remove")),
         icon = icon("gear", class = "opt"),
         size="sm",
         tooltip = tooltipOptions(title = "Opciones"),
@@ -78,7 +80,7 @@ salida1 <- function(input, output, session, name , bas , typeplot) {
   qq<- reactive({
     plot(datos, ages=seq(input$edad[1], input$edad[2], 1), 
          years=seq(input$anos[1], input$anos[2], 1),
-         plot.type = typeplot)
+         plot.type = typeplot, transform = input$log)
   })
   return(qq)
 }  
@@ -232,4 +234,7 @@ salida5 <- function(input, output, session, name , bas, bytype) {
  
   return(pp)
 }  
+
+
+
 

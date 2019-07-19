@@ -202,6 +202,20 @@ coef_coho <- function(model) {
   auxi
 }
 
+
+coef_fores <- function(model) {
+  auxi <- data.frame(years = model$years)
+ 
+  if (!is.null(model$kt.f)) {
+    aux2 <- t(model$kt.f$mean)
+    colnames(aux2) <- paste0("kt", 1:dim(aux2)[2])
+    auxi <- cbind(auxi, aux2)
+    row.names(auxi)<- c()
+  }
+  if (!is.null(model$gc.f)) auxi$gc <- model$gc.f$mean
+  auxi
+}
+
 hmd.mx2 <- function(country, username, password, label=country)
 {
   path <- paste("https://www.mortality.org/hmd/", country, "/STATS/", "Mx_1x1.txt", sep = "")

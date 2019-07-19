@@ -23,7 +23,8 @@ ui <-dashboardPage(
                menuItem("Lifetables", tabName = "menu_life"),
                menuItem("Construct models", tabName = "menu_models"),
                menuItem("Evaluate models", tabName = "menu_plotmodels"),
-               menuItem("Forecast models", tabName = "menu_forecast")
+               menuItem("Forecast models", tabName = "menu_forecast"),
+               menuItem("Evaluate forecasts", tabName = "menu_plotfores")
            )
      ),
      dashboardBody(
@@ -68,8 +69,6 @@ ui <-dashboardPage(
                                withSpinner(verbatimTextOutput("show_models"))
                       )
                    ),
-                   hr(),
-                   hr(),
                    
                    fluidRow(box(status = "primary", solidHeader = TRUE, width = 10, title = "Lista de modelos cargados",  
                                 dataTableOutput("tablemodelos")
@@ -90,12 +89,29 @@ ui <-dashboardPage(
                    fluidRow(box(status = "primary", solidHeader = TRUE, width = 6, title = "Create forecast",
                                 uiOutput("create_forecast")
                                 
+                        ),
+                      box(status = "primary", solidHeader = TRUE, width = 6, title = "Creating forecast",
+                         withSpinner(verbatimTextOutput("show_forecast"))
+                       )
                    ),
-                   box(status = "primary", solidHeader = TRUE, width = 6, title = "Creating forecast",
-                       withSpinner(verbatimTextOutput("show_forecast"))
+                   
+                   fluidRow(box(status = "primary", solidHeader = TRUE, width = 10, title = "Lista de predicciones cargadas",  
+                                dataTableOutput("tablefores")
+                             ),
+                       box(status = "primary", solidHeader = TRUE, width = 2, title = "Predicciones que no se utilizaran",
+                          tableOutput('fores_exluidos'),
+                         div(actionBttn("borrar_fore", icon =icon("trash")), align = "right")
+                      )
                    )
-                   )
-           )                   
+           ),
+           tabItem(tabName = "menu_plotfores",
+                   fluidRow(
+                           uiOutput("foresoutput")
+                   )   
+                   
+           )
+           
+                              
            
      )
      )
