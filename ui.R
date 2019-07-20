@@ -9,11 +9,25 @@
 
 
 # Define UI for application that draws a histogram
-ui <-dashboardPage(
+ui <-dashboardPagePlus(
         
         
         
-     dashboardHeader(title = "Mortalidad"),
+     dashboardHeaderPlus(title = "Mortalidad",
+                         enable_rightsidebar = TRUE,
+                         rightSidebarIcon = "save",
+                           left_menu =  tagList(dropdownBlock(
+                                         id = "save",
+                                         title = "Guardar",
+                                         icon = icon("ok", lib = "glyphicon"),
+                                         badgeStatus = NULL,
+                                         sliderInput(
+                                                 inputId = "n",
+                                                 label = "Number of observations",
+                                                 min = 10, max = 100, value = 30)
+                                       )
+                          )),
+                        
      
      dashboardSidebar(
            sidebarMenu( id ="menu",
