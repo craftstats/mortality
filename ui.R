@@ -15,19 +15,9 @@ ui <-dashboardPagePlus(
         
      dashboardHeaderPlus(title = "Mortalidad",
                          enable_rightsidebar = TRUE,
-                         rightSidebarIcon = "save",
-                           left_menu =  tagList(dropdownBlock(
-                                         id = "save",
-                                         title = "Guardar",
-                                         icon = icon("ok", lib = "glyphicon"),
-                                         badgeStatus = NULL,
-                                         sliderInput(
-                                                 inputId = "n",
-                                                 label = "Number of observations",
-                                                 min = 10, max = 100, value = 30)
-                                       )
-                          )),
-                        
+                         rightSidebarIcon = "save"
+                ),
+                     
      
      dashboardSidebar(
            sidebarMenu( id ="menu",
@@ -41,6 +31,7 @@ ui <-dashboardPagePlus(
                menuItem("Evaluate forecasts", tabName = "menu_plotfores")
            )
      ),
+        
      dashboardBody(
              includeCSS("pru.css"),
              useShinyalert(),
@@ -50,7 +41,7 @@ ui <-dashboardPagePlus(
                     fluidRow(
                       box(status = "primary", solidHeader = TRUE, width = 4,
                         radioButtons("input_type", "Lectura de datos",
-                                     c("Human Mortality Database"="hmd", "Archivo"="archivo")
+                                     c("Human Mortality Database"="HMD", "Archivo"="Archivo", "Guardados" = "Guardado")
                         )
                       ),
                       uiOutput("inicial")
@@ -75,11 +66,11 @@ ui <-dashboardPagePlus(
                    
             ),
            tabItem(tabName = "menu_models",
-                   fluidRow(box(status = "primary", solidHeader = TRUE, width = 6, title = "Create Model",
+                   fluidRow(box(status = "primary", solidHeader = TRUE, width = 8, title = "Create Model",
                                 uiOutput("create_model")
                              
                            ),
-                           box(status = "primary", solidHeader = TRUE, width = 6, title = "Creating Model",
+                           box(status = "primary", solidHeader = TRUE, width = 4, title = "Creating Model",
                                withSpinner(verbatimTextOutput("show_models"))
                       )
                    ),
@@ -109,10 +100,10 @@ ui <-dashboardPagePlus(
                        )
                    ),
                    
-                   fluidRow(box(status = "primary", solidHeader = TRUE, width = 10, title = "Lista de predicciones cargadas",  
+                   fluidRow(box(status = "primary", solidHeader = TRUE, width = 9, title = "Lista de predicciones cargadas",  
                                 dataTableOutput("tablefores")
                              ),
-                       box(status = "primary", solidHeader = TRUE, width = 2, title = "Predicciones que no se utilizaran",
+                       box(status = "primary", solidHeader = TRUE, width = 3, title = "Predicciones que no se utilizaran",
                           tableOutput('fores_exluidos'),
                          div(actionBttn("borrar_fore", icon =icon("trash")), align = "right")
                       )
@@ -128,5 +119,11 @@ ui <-dashboardPagePlus(
                               
            
      )
-     )
+     ),
+     rightSidebar(title= "dfdsf",
+                  
+                                         textInput("savename", "Nombre del archivo", value = paste0("file", Sys.Date())), 
+                                         actionBttn(inputId = "grabar", label = "Grabar", icon = icon("save"), style = "simple", color = "success")
+                  
+     )   
 )

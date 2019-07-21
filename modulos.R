@@ -154,16 +154,36 @@ modelos_server <- function(input, output, session, name, bas) {
 }  
 
 
+# Modulos de mostrar forecast ---------------------------------------------
+
+
+
 fores_UI <- function(id, title) {
   ns <- NS(id)
   fluidRow(
     fluidRow(column(width =3), box(width = 6, status = "primary", h4(title))),
-    tabBox(width = 6, title = "Parameters",
+    tabBox(width = 4, title = "Predicción",
+           tabPanel(title = "Plot",
+                    plot_con_opciones_UI(ns("preplot"))  
+           ),
+           tabPanel(title = "Tabla",
+                    tabla_opciones_UI(ns("pretabla")) 
+           )
+    ),  
+    tabBox(width = 4, title = "Parameters",
            tabPanel(title = "Plot",
                     plot_con_opciones_UI(ns("plot"))  
            ),
            tabPanel(title = "Tabla",
               tabla_opciones_UI(ns("tabla")) 
+           )
+    ),
+    tabBox(width = 4, title = "Simulación",
+           tabPanel(title = "Plot",
+                    plot_con_opciones_UI(ns("simplot"))  
+           ),
+           tabPanel(title = "Tabla",
+                    tabla_opciones_UI(ns("simtabla")) 
            )
     )  
   )
@@ -171,6 +191,8 @@ fores_UI <- function(id, title) {
 
 fores_server <- function(input, output, session, name, bas) {
   ns <- session$ns
+  callModule(tabla_opciones_server, "pretabla", tablafore, name , bas, "prediccion", type = "pre") 
   callModule(plot_con_opciones, "plot", salida4, name , bas)
-  callModule(tabla_opciones_server, "tabla", tablacofore, name , bas, "forecastcoef") 
+  callModule(tabla_opciones_server, "tabla", tablafore, name , bas, "forecastcoef", type = "co") 
+  callModule(tabla_opciones_server, "simtabla", tablafore, name , bas, "simulacion", type = "sim") 
 }  

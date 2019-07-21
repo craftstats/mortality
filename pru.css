@@ -13,3 +13,16 @@
     color:#337ab7;
 }
 
+.sidebar-mini.sidebar-collapse .shiny-bound-input.action-button {
+  margin: 6px 6px 6px 3px;
+  max-width: 85%;
+}
+.sidebar-mini.sidebar-collapse .fa {
+  font-size: initial;
+}
+.sidebar-mini.sidebar-collapse .btn-default {
+  font-size: 0;
+}
+.sidebar-mini.sidebar-collapse #tohide {
+  display: none;
+}

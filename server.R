@@ -25,19 +25,30 @@ server <-function(input, output, session) {
   HMD <- reactiveValues()
   bases <- reactiveValues(memoria = list(), actual = NULL, selected = NULL)
   HMD[["España"]] <- lll
-  modelos <- reactiveValues(memoria = list(), selected = NULL, actual = NULL)
-  model2 <- reactiveValues(descri = list())
-  fores <- reactiveValues(memoria = list(), actual = NULL, selected = NULL, descri = list())
+  modelos <- reactiveValues(memoria = list(), selected = NULL, actual = NULL, descri = list())
+  #modelos <- reactiveValues(descri = list())
+  fores <- reactiveValues(memoria = list(), actual = NULL, selected = NULL, descri = list(), simu = list())
   
   
-  
+ 
+observeEvent(input$grabar, {
+  auxi <- list(bases = bases$memoria, 
+               modelos = modelos$memoria,
+               modes = modelos$descri,
+               fores = fores$memoria,
+               foresdes = fores$descri)
+  saveRDS(auxi, here("grabados", input$savename))
+  #shinyalert("Sesión grabada", type = "success")
+  #shinyjs::removeClass(selector = "aside.control-sidebar", class = "control-sidebar-open")
+  shinyjs::removeClass(selector = "body.sidebar-mini", class = "control-sidebar-open")
+})   
   
   
   ## pantalla inicial --------------------------------------------------------  
   output$inicial <- renderUI({
     if (is.null(input$input_type)) return()
       switch(input$input_type,
-          "hmd" = div(
+          "HMD" = div(
             box(status = "primary", solidHeader = TRUE, width=4,
             textInput("usuario", "Usuario", "rebeldatalab@gmail.com"),
             textInput("passw", "Contraseña", "1562189576"),
@@ -53,7 +64,7 @@ server <-function(input, output, session) {
               )
           ),
             
-         "archivo" =  div(
+         "Archivo" =  div(
                    box(status = "primary", solidHeader = TRUE, width=4,  
                       fileInput("file1", "Archivo con la matriz de ratios",
                                 multiple = FALSE,
@@ -75,10 +86,41 @@ server <-function(input, output, session) {
                             verbatimTextOutput("summary_exc")
                             #)
                           )
-                  )
+                  ),
+         "Guardado" = div(
+              box(status = "primary", solidHeader = TRUE, width=4, 
+                  selectInput("loadmi", "Elige guardado:", choices = list.files(here("grabados"))),
+                  actionBttn(inputId = "loadcarga", label = "Cargar")
+                 ),
+              box(status = "primary", solidHeader = TRUE, width=4,
+                  #withSpinner(
+                  verbatimTextOutput("summary_load")
+                  #)
+              )
         )
+      )
   })
+ 
+flag_load <- eventReactive(input$loadcarga, {
+  auxi <- readRDS(here("grabados",input$loadmi))
+  bases$memoria <- auxi$bases
+  modelos$memoria <- auxi$modelos
+  modelos$descri <- auxi$modes
+  fores$memoria <- auxi$fores
+  fores$descri <- auxi$foresdes
+  auxi
+})
+ 
+output$summary_load <- renderPrint({
+  req(flag_load()) 
+  cat("Cargando: \n Datos:\n")
+  cat(names(flag_load()$bases))
+  cat("\nModelos: \n")
+  cat(names(flag_load()$modelos))
+  cat("\nForecasts: \n")
+  cat(names(flag_load()$fores))
   
+})
 
 # Lectura from archivo excel ----------------------------------------------
 
@@ -168,7 +210,8 @@ req(input$file2)
 
  output$tablebases <- renderDT({
    if (length(bases$memoria)!=0)
-   datatable(create_tabla_bases(bases$memoria))
+   datatable(create_tabla_bases(bases$memoria), class = "display compact",
+             options = list(dom = 't'))
    else NULL
  })
  
@@ -203,6 +246,7 @@ output$descri <- renderUI({
   }
   run3(bases, descriptivos_server)
   deploy3(bases$selected, descriptivos_UI)
+  #shinyjs::removeClass(selector = "sw-dropdown-content", class = "sw-show")
   
   })
 
@@ -223,28 +267,37 @@ output$descri <- renderUI({
 # Definir modelo ----------------------------------------------------------
 
     output$create_model <- renderUI({
+    if (length(bases$memoria)>0) {  
        mi<-0
       mx <-100
       req(bases$memoria)
 
       div(
-        selectInput("basemodelo", "Datos", choices = names(bases$memoria),  selectize = FALSE),
-        helper(
+        fluidRow(column(width=6,
+          selectInput("basemodelo", "Datos", choices = names(bases$memoria),  selectize = FALSE)),
+          column(width=6, textInput("namemodelo",label= "Nombre del modelo"))
+        ),
+          
+        fluidRow(column(width=9, helper(
           radioGroupButtons(inputId = "modelo", label = "Choose class of model", choices = c("LC", "CBD", "APC", "RH", "M6","M7","M8", "PLAT"),
                             justified = TRUE, status = "primary",
                             checkIcon = list(yes = icon("ok", lib = "glyphicon"),
                                              no = icon("remove",
                                                        lib = "glyphicon")))
-              ,type = "markdown", content = "models", size="l") ,
-        prettyRadioButtons(inputId = "link", label = "Choose type of error", choices = links,
-                               icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-        sliderInput("anosmodelo", "Años", min = mi, max = mx , value = c(mi,mx), step = 1),
-        sliderInput("edadmodelo", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1),
+              ,type = "markdown", content = "models", size="l")) ,
+          column(width =3, prettyRadioButtons(inputId = "link", label = "Type of error", choices = links,
+                                              icon = icon("check"),bigger = TRUE,status = "info"))
+          ),
+                
+        fluidRow(column(width=6, sliderInput("anosmodelo", "Años", min = mi, max = mx , value = c(mi,mx), step = 1)),
+                 column(width=6, sliderInput("edadmodelo", "Edad", min = mi, max = mx , value = c(mi,mx), step = 1))
+                 ),
         numericInput("clipmodelo", label = "Nº de cohortes en los extremos con peso 0", min = 0, value = 0, step = 1),
         uiOutput("extra_param"),
-        textInput("namemodelo",label= "Nombre del modelo"),
         actionBttn(inputId = "runmodel", label = "Run model", icon = icon("gear"), style = "simple", color = "success")
       )
+    } else NULL
+      
     })
   
       observe( {
@@ -315,7 +368,7 @@ output$descri <- renderUI({
           
             modelos$memoria[[nombre]] <- auxi
           modelos$actual <- modelos$memoria[[nombre]]
-          model2$descri[[nombre]] <- list(Nombre = nombre,
+          modelos$descri[[nombre]] <- list(Nombre = nombre,
                                            Datos = input$basemodelo,
                                            Modelo = input$modelo,
                                            Link = key_pais(links, input$link),
@@ -347,20 +400,23 @@ output$descri <- renderUI({
 # Tabla modelos -----------------------------------------------------------
 
         output$tablemodelos <- renderDT({
-          if (!is.null(modelos$memoria))
-          datatable(create_tabla_modelos(model2$descri)) %>% 
+          if (length(modelos$memoria)!=0)
+          datatable(create_tabla_modelos(modelos$descri), class = "display compact",
+                    options = list(dom = 't')) %>% 
           formatRound(11:12,1) 
+          else NULL
         })
         
         output$modelos_exluidos <- renderTable({
-          if (!is.null(modelos$memoria))
-          create_tabla_modelos(model2$descri)$Nombre[input$tablemodelos_rows_selected]
+          if (length(modelos$memoria)!=0)
+          create_tabla_modelos(modelos$descri)$Nombre[input$tablemodelos_rows_selected]
+          else NULL
         })
 
         observeEvent(input$borrar_mod,{
           if (!is.null(input$tablemodelos_rows_selected)) {
             modelos$memoria <- modelos$memoria[-input$tablemodelos_rows_selected]
-            model2$descri <- model2$descri[-input$tablemodelos_rows_selected]
+            modelos$descri <- modelos$descri[-input$tablemodelos_rows_selected]
             modelos$selected <- modelos$memoria
             modelos$actual <- NULL
           }
@@ -391,78 +447,67 @@ output$descri <- renderUI({
 # Definir forecast --------------------------------------------------------
 
         output$create_forecast <- renderUI({
+          if (length(modelos$memoria)>0) {    
+          
           div(
-            selectInput("modelofore", "Modelo: ", choices = names(modelos$memoria),  selectize = FALSE),
-            sliderInput("anosfore", "Años a predecir:", min = 1, max = 200 , value = 50, step = 1),
+            fluidRow(column(width =6, selectInput("modelofore", "Modelo: ", choices = names(modelos$memoria),  selectize = FALSE)),
+                     column(width=6, textInput("namefore",label= "Nombre de la predicción:"))
+                     ),
+            fluidRow(column(width =6,sliderInput("anosfore", "Años a predecir:", min = 1, max = 200 , value = 50, step = 1)),
+                     column(width=6, prettyRadioButtons(inputId = "salto", label = "Método para el salto:", 
+                                                        choices = c("Estimación" = "fit", "Observado" = "actual")))
+                     ),
             prettyRadioButtons(inputId = "metodoperiodo", label = "Método para el periodo:", 
                                choices = c("Random walk" = "mrwd", "Arima" = "iarima"), 
                                icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
             uiOutput("ktarima"),
             uiOutput("gcarima"),
-            prettyRadioButtons(inputId = "salto", label = "Método para el salto:", 
-                               choices = c("Estimación" = "fit", "Observado" = "actual")),
-            textInput("namefore",label= "Nombre de la predicción:"),
             actionBttn(inputId = "runfore", label = "Run forecast", icon = icon("gear"), style = "simple", color = "success")
           )
-          
+            
+          } else NULL  
         })
         
         observe( {
           req(input$modelofore)
-          updateTextInput(session, "namefore", value = paste0("Forecast", input$runfore, input$modelofore, input$anosfore))
+          updateTextInput(session, "namefore", value = paste0("Fore", input$runfore, input$modelofore, input$anosfore))
         })
         
         
         output$ktarima <- renderUI({
           if (req(input$metodoperiodo) == "iarima") {
-             div( prettyToggle(inputId = "ktarimaauto", label_on = "Automático", icon_on = icon("check"),
-                          status_on = "info", status_off = "warning", label_off = "Automático",
-                          icon_off = icon("remove"), value = FALSE),
-                  uiOutput("ktarimano")
-             )
-               
-            
-          }
-                 
+               div(
+                 fluidRow(
+                   column(width=4, numericInput("ktarimap", "P", value = 1, min = 0)),
+                   column(width=4, numericInput("ktarimad", "D", value = 1, min = 0)),
+                   column(width=4, numericInput("ktarimaq", "Q", value = 0, min = 0))
+                 )
+               )
+             }
         })   
         
-        output$ktarimano <- renderUI({
-          req(!is.null(input$ktarimaauto))
-          if (input$ktarimaauto == FALSE){
-            div(
-              fluidRow(
-               column(width=4, numericInput("ktarimap", "P", value = 1, min = 0)),
-               column(width=4, numericInput("ktarimad", "D", value = 1, min = 0)),
-               column(width=4, numericInput("ktarimaq", "Q", value = 0, min = 0))
-              )
-            )  
-          }
-      })
         
         output$gcarima <- renderUI({
            req(input$modelofore) 
-          if (model2$descri[[input$modelofore]]$Modelo %in% c("APC", "RH", "M6", "M7", "M8", "PLAT")) {
-          
-            div( prettyRadioButtons(inputId = "gcarimaauto", label = "Método Arima para las cohortes:", 
-                                    choices = c("Elige" = "noaut", "Automático" = "aut"), 
-                                    icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
-                 uiOutput("gcarimano")
-            )
-          }
-          
-        })   
-        
-        output$gcarimano <- renderUI({
-          if (req(input$gcarimaauto) == "noaut"){
+          if (modelos$descri[[input$modelofore]]$Modelo %in% c("APC", "RH", "M6", "M7", "M8", "PLAT")) {
+            if (modelos$descri[[input$modelofore]]$Modelo %in% c("APC", "RH")) {
+              val1 <- 1
+              val2 <- 1
+            } else {
+              val1 <- 2
+              val2 <- 0
+            }
             div(
               fluidRow(
-                column(width=4, numericInput("gcarimap", "P", value = 1, min = 0)),
-                column(width=4, numericInput("gcarimad", "D", value = 1, min = 0)),
+                column(width=4, numericInput("gcarimap", "Arima para la cohorte: \nP", value = val1, min = 0)),
+                column(width=4, numericInput("gcarimad", "D", value = val2, min = 0)),
                 column(width=4, numericInput("gcarimaq", "Q", value = 0, min = 0))
               )
             )  
+           
           }
-        })
+          
+        })   
         
         
 
@@ -495,6 +540,13 @@ output$descri <- renderUI({
                                                        Years = paste0(min(auxi$years),"-", max(auxi$years)),
                                                        Jump = ifelse(input$salto == "fit", "Estimación", "Observado")
                                                     )
+                      fores$simu[[nombre]] <- simulate(modelos$memoria[[input$modelofore]],
+                                             h = input$anosfore,
+                                             kt.method = input$metodoperiodo,
+                                             kt.order = c(input$ktarimap, input$ktarimad, input$ktarimaq),
+                                             gc.order = c(input$gcarimap, input$gcarimad, input$gcarimaq),
+                                             jumpchoice = input$salto
+                      )
                      
             })
         
@@ -512,7 +564,7 @@ output$descri <- renderUI({
           
           if (length(fores$memoria)>0)
             datatable(map_df(fores$descri, `[`), class = "display compact",
-                      options = list(dom = 't', scroller=TRUE, scrollY = 400, scrollX = 100))
+                      options = list(dom = 't'))
         })
         
         output$fores_exluidos <- renderTable({

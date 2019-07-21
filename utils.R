@@ -27,7 +27,7 @@ sheets_name <- function(file) {
       return(excel_sheets(path = file$datapath))
     },
     error = function(err) {
-      shinyalert("¡Fallo de lectura!", "Revisa que sea un archiovo excel válido", type = "error")   
+      sendSweetAlert(session, html = "¡Fallo de lectura!", "Revisa que sea un archiovo excel válido", type = "error")   
       return(NULL)
     }) 
   } else {

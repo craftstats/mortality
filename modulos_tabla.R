@@ -184,10 +184,14 @@ tablafit <- function(input, output, session, name , bas) {
 } 
 
 
-tablacofore <- function(input, output, session, name , bas , type) {
+tablafore <- function(input, output, session, name , bas , type) {
   ns <- session$ns
   fore <- bas$selected[[name]]
-  datos <- coef_fores(fore)
+  datos <- switch(type,  
+    "co" = coef_fores(fore),
+    "pre" = tibble::rownames_to_column(as.data.frame(fore$rates),var = "Age"),
+    "sim" = tibble::rownames_to_column(as.data.frame(apply(bas$simu[[name]]$rates, c(1,2), mean)), var = "Age")
+  )    
   tabla <- reactive({
     datos          
   })
@@ -200,5 +204,8 @@ tablacofore <- function(input, output, session, name , bas , type) {
     )
   })
   return(tabla)
-  
 }  
+
+
+
+
