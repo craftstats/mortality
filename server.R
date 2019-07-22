@@ -25,11 +25,6 @@ names(paises) <- c("Australia", "Austria", "Belarus", "Belgium", "Bulgaria",
                    
 links <- list(Poisson = "log", Binomial = "logit")
 spain<- readRDS("idemo")
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 1492abbf3884bc6fdec5ad88b2193c606b8a5f3b
 
 server <-function(input, output, session) {
   observe_helpers(withMathJax = TRUE)
