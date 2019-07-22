@@ -11,22 +11,41 @@
 
 # Define server logic required to draw a histogram
 options(shiny.sanitize.errors = FALSE)
-paises <-c("AUS","ESP","ITA")
-names(paises) <- c("Australia", "España", "Italia")
+paises <- c("AUS","AUT", "BLR", "BEL", "BGR", "CAN", "CHL", "HRV", "CZE",
+"DNK", "EST", "FIN", "FRATNP", "FRACNP", "DEUTNP", "DEUTE", "DEUTW",
+"GRC", "HUN", "ISL", "ISR", "ITA", "JPN", "KOR", "LVA", "LTU", "LUX", "NLD",
+"NZL_NP", "NZL_MA", "NZL_NM", "NOR", "POL", "PRT", "RUS", "SVK", "SVN",
+"ESP", "SWE", "CHE", "TWN", "GBR_NP", "GBRTENW", "GBRCENW", "GBR_SCO",
+"GBR_NIR", "USA", "UKR")
+
+names(paises) <- c("Australia", "Austria", "Belarus", "Belgium", "Bulgaria",
+                   "Canada", "Chile", "Croatia", "Czechia", "Denmark", 
+                   "Estonia", "Finland", "France_total", "France_civilian",
+                   "Germany_total", "Germany_east", "Germany_west", 
+                   "Greece", "Hungary", "Iceland", "Israel", "Italy", 
+                   "Japan", "Korea", "Latvia", "Lithuania", "Luxembourg",
+                   "Netherlands", "New Zealand Total", "New Zealand maori",
+                   "New Zealand non-maori", "Norway", "Poland", "Portugal",
+                   "Russia", "Slovakia", "Slovenia", "Spain", "Sweden",
+                   "Switzerland", "Taiwan", "UK total", "England Wales total",
+                   "Englan Wales civilian", "Scotland", "Nothern Ireland", 
+                   "USA", "Ukraine")
+                   
+                   
+                   
+                   
 links <- list(Poisson = "log", Binomial = "logit")
-lll<- readRDS("idemo")
-llll<-StMoMoData(lll)
-jjj <- readRDS("modelopru")
+spain<- readRDS("idemo")
 
 server <-function(input, output, session) {
   observe_helpers(withMathJax = TRUE)
-  
-  
+
   HMD <- reactiveValues()
+  HMD[["Spain"]] <- spain
   bases <- reactiveValues(memoria = list(), actual = NULL, selected = NULL)
-  HMD[["España"]] <- lll
+ 
   modelos <- reactiveValues(memoria = list(), selected = NULL, actual = NULL, descri = list())
-  #modelos <- reactiveValues(descri = list())
+ 
   fores <- reactiveValues(memoria = list(), actual = NULL, selected = NULL, descri = list(), simu = list())
   
   
@@ -36,10 +55,9 @@ observeEvent(input$grabar, {
                modelos = modelos$memoria,
                modes = modelos$descri,
                fores = fores$memoria,
-               foresdes = fores$descri)
+               foresdes = fores$descri, 
+               simu = fores$simu)
   saveRDS(auxi, here("grabados", input$savename))
-  #shinyalert("Sesión grabada", type = "success")
-  #shinyjs::removeClass(selector = "aside.control-sidebar", class = "control-sidebar-open")
   shinyjs::removeClass(selector = "body.sidebar-mini", class = "control-sidebar-open")
 })   
   
@@ -58,9 +76,9 @@ observeEvent(input$grabar, {
             actionButton(inputId = "carga",label = "Cargar")
             ),
             box(status = "primary", solidHeader = TRUE,width = 4,
-                #withSpinner(
+               
                   verbatimTextOutput("summary_hmd")
-                 # )
+               
               )
           ),
             
@@ -82,9 +100,9 @@ observeEvent(input$grabar, {
                          actionBttn(inputId = "archicarga", label = "Cargar")
                        ),
                    box(status = "primary", solidHeader = TRUE, width=4,
-                          #withSpinner(
+                         
                             verbatimTextOutput("summary_exc")
-                            #)
+                         
                           )
                   ),
          "Guardado" = div(
@@ -93,9 +111,9 @@ observeEvent(input$grabar, {
                   actionBttn(inputId = "loadcarga", label = "Cargar")
                  ),
               box(status = "primary", solidHeader = TRUE, width=4,
-                  #withSpinner(
+                  
                   verbatimTextOutput("summary_load")
-                  #)
+                  
               )
         )
       )
@@ -108,6 +126,7 @@ flag_load <- eventReactive(input$loadcarga, {
   modelos$descri <- auxi$modes
   fores$memoria <- auxi$fores
   fores$descri <- auxi$foresdes
+  fores$simu <- auxi$simu
   auxi
 })
  
@@ -246,7 +265,7 @@ output$descri <- renderUI({
   }
   run3(bases, descriptivos_server)
   deploy3(bases$selected, descriptivos_UI)
-  #shinyjs::removeClass(selector = "sw-dropdown-content", class = "sw-show")
+  
   
   })
 
@@ -392,7 +411,6 @@ output$descri <- renderUI({
 
         output$show_models <- renderPrint({
           req(flag_mod())
-          #nombre <- trimws(input$namemodelo)
           modelos$actual
         })
     
@@ -552,7 +570,6 @@ output$descri <- renderUI({
         
         output$show_forecast <- renderPrint({
           req(flag_fore())
-          #nombre <- trimws(input$namemodelo)
           fores$actual
         })
         

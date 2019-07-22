@@ -7,7 +7,8 @@ plot_con_opciones_UI <- function(id) {
     fluidRow(
       column ( width=4, 
                downloadBttn(outputId = ns("down"), label = "Download", size = "xs")),
-      column ( width=4, offset = 4,
+      column(width=4),
+      column ( width=4, 
                actionBttn(inputId = ns("zoom"), icon = icon("search-plus", class = "opt"),
                           style = "fill", color = "danger", size = "s"))
     )
@@ -235,6 +236,72 @@ salida5 <- function(input, output, session, name , bas, bytype) {
   return(pp)
 }  
 
+salida6 <- function(input, output, session, name , bas) {
+  ns <- session$ns
+  fore <- bas$selected[[name]]
+  pp<- reactive({
+    req(input$anos)
+    plot_fore(fore, input$anos, input$atras, input$log, input$inter)
+  })
+  
+  output$plot <- renderUI({
+    div(
+      dropdown(
+        selectInput(ns("anos"), "Selecciona edades:", choices = fore$ages, multiple = TRUE),
+        numericInput(ns("atras"), "Años hacia atrás:", value = 1, min = 1, max = length(fore$model$years)),
+        prettyToggle(ns("log"), label_on = "Log rates", 
+                     label_off = "Log rates", value = FALSE, icon_on = icon("check"),
+                     status_on = "info", status_off = "warning", icon_off = icon("remove")),
+        prettyToggle(ns("inter"), label_on = "Plot interactivo", 
+                     label_off = "Plot interactivo", value = FALSE, icon_on = icon("check"),
+                     status_on = "info", status_off = "warning", icon_off = icon("remove")),
+        icon = icon("gear", class = "opt"),
+        size="sm",
+        tooltip = tooltipOptions(title = "Opciones"),
+        status = "info"
+      ),
+      uiOutput(ns("ppp"))
+    )  
+  })
+  
+    output$ppp <- renderUI({
+      if (input$inter) div(renderPlotly({pp()}))
+      else div(renderPlot({pp()}))
+      
+    })
+  
+  return(pp)
+}  
 
-
+salida7 <- function(input, output, session, name , bas) {
+  ns <- session$ns
+  simu <- bas$simu[[name]]
+  pp<- reactive({
+    req(input$anos)
+    plot_fan(simu, input$anos, input$atras, input$log, input$fan)
+  })
+  
+  output$plot <- renderUI({
+    div(
+      dropdown(
+        selectInput(ns("anos"), "Selecciona edades:", choices = simu$ages, multiple = TRUE),
+        numericInput(ns("atras"), "Años hacia atrás:", value = 1, min = 1, max = length(simu$model$years)),
+        prettyToggle(ns("log"), label_on = "Log rates", 
+                     label_off = "Log rates", value = FALSE, icon_on = icon("check"),
+                     status_on = "info", status_off = "warning", icon_off = icon("remove")),
+        prettyToggle(ns("fan"), label_on = "Fan plot", 
+                     label_off = "Fan plot", value = FALSE, icon_on = icon("check"),
+                     status_on = "info", status_off = "warning", icon_off = icon("remove")),
+        icon = icon("gear", class = "opt"),
+        size="sm",
+        tooltip = tooltipOptions(title = "Opciones"),
+        status = "info"
+      ),
+      renderPlot({pp()})
+    )  
+  })
+  
+  
+  return(pp)
+}  
 
