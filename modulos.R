@@ -191,8 +191,10 @@ fores_UI <- function(id, title) {
 
 fores_server <- function(input, output, session, name, bas) {
   ns <- session$ns
+  callModule(plot_con_opciones, "preplot", salida6, name , bas)
   callModule(tabla_opciones_server, "pretabla", tablafore, name , bas, "prediccion", type = "pre") 
   callModule(plot_con_opciones, "plot", salida4, name , bas)
   callModule(tabla_opciones_server, "tabla", tablafore, name , bas, "forecastcoef", type = "co") 
+  callModule(plot_con_opciones, "simplot", salida7, name , bas)
   callModule(tabla_opciones_server, "simtabla", tablafore, name , bas, "simulacion", type = "sim") 
 }  

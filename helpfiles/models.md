@@ -20,7 +20,7 @@ $$\begin{array}{lcl}
 \text{APC: Age-Period-Cohort} &  & η_{xt} = α_x + κ_t + γ_{t-x}
 \end{array}$$
 $$\begin{array}{lcl}
-\text{RH ("NP") : Renshaw and Haberman} &  &  η_{xt} = α_x + β^{(1)}_xκ_t + β^{(0)} γ_{t-x}
+\text{RH ("NP") : Renshaw and Haberman} &  &  η_{xt} = α_x + β^{(1)}_xκ_t + {β^{(0)}_x} γ_{t-x}
 \end{array}$$
 $$\begin{array}{lcl}
 \text{RH ("1") : Renshaw and Haberman} &  &  η_{xt} = α_x + β^{(1)}_xκ_t + γ_{t-x}
