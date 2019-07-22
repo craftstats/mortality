@@ -24,13 +24,13 @@ names(paises) <- c("Australia", "Austria", "Belarus", "Belgium", "Bulgaria",
                    
                    
 links <- list(Poisson = "log", Binomial = "logit")
-spain<- readRDS("idemo")
+
 
 server <-function(input, output, session) {
   observe_helpers(withMathJax = TRUE)
 
   HMD <- reactiveValues()
-  HMD[["Spain"]] <- spain
+  
   bases <- reactiveValues(memoria = list(), actual = NULL, selected = NULL)
  
   modelos <- reactiveValues(memoria = list(), selected = NULL, actual = NULL, descri = list())
@@ -57,8 +57,9 @@ observeEvent(input$grabar, {
       switch(input$input_type,
           "HMD" = div(
             box(status = "primary", solidHeader = TRUE, width=4,
-            textInput("usuario", "Usuario", "rebeldatalab@gmail.com"),
-            textInput("passw", "Contraseña", "1562189576"),
+            textInput("usuario", "Usuario", "amancio.betzuen@ehu.es"),
+            textInput("passw", "Contraseña", "ABZ0107"),
+            #"1562189576"
             selectInput("pais", "Pais", choices = paises, selected = "ESP", selectize = TRUE),
             prettyRadioButtons(inputId = "serieXXX", label = "Choose serie:", choices = c("female", "male", "total"), 
                                icon = icon("check"),bigger = TRUE,status = "info",inline = TRUE),
